@@ -1,0 +1,39 @@
+{
+  "family": "easybid-frontend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "easybid-frontend",
+      "image": "263701502489.dkr.ecr.us-east-2.amazonaws.com/easybid-frontend:latest",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "VITE_GRAPHQL_URL",
+          "value": "/graphql"
+        },
+        {
+          "name": "VITE_API_URL",
+          "value": "/api"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/easybid-frontend",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "essential": true
+    }
+  ],
+  "executionRoleArn": "arn:aws:iam::263701502489:role/ecsTaskExecutionRole"
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-0017ab93fc8817656"
+  },
+  {
+    "ParameterKey": "PublicSubnet1Id",
+    "ParameterValue": "subnet-051332f7bff7fb611"
+  },
+  {
+    "ParameterKey": "PublicSubnet2Id",
+    "ParameterValue": "subnet-07052a4886d8a499e"
+  },
+  {
+    "ParameterKey": "PrivateSubnet1Id",
+    "ParameterValue": "subnet-07ad2f2e436f77bf6"
+  },
+  {
+    "ParameterKey": "PrivateSubnet2Id",
+    "ParameterValue": "subnet-0f674977a6ce225b3"
+  },
+  {
+    "ParameterKey": "RDSSecurityGroupId",
+    "ParameterValue": "sg-047c225e0d2d99a37"
+  }
+]

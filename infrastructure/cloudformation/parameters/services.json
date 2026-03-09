@@ -1,0 +1,26 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "AWSAccountId",
+    "ParameterValue": "263701502489"
+  },
+  {
+    "ParameterKey": "BackendDesiredCount",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "FrontendDesiredCount",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "DatabaseUrlSecretArn",
+    "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/database-url-W5atUL"
+  },
+  {
+    "ParameterKey": "JwtSecretArn",
+    "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/jwt-secret-mOZmzg"
+  }
+]

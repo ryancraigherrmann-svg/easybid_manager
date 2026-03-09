@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EasyBid - ECS Services and Task Definitions
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+
+  AWSAccountId:
+    Type: String
+    Default: '263701502489'
+
+  BackendImageTag:
+    Type: String
+    Default: latest
+
+  FrontendImageTag:
+    Type: String
+    Default: latest
+
+  BackendDesiredCount:
+    Type: Number
+    Default: 1
+
+  FrontendDesiredCount:
+    Type: Number
+    Default: 1
+
+  DatabaseUrlSecretArn:
+    Type: String
+    Description: Full ARN of the easybid/database-url secret (including the -XXXXXX suffix)
+
+  JwtSecretArn:
+    Type: String
+    Description: Full ARN of the easybid/jwt-secret secret (including the -XXXXXX suffix)
+
+Resources:
+  # ---------- Backend Task Definition ----------
+  BackendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: easybid-backend
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      Cpu: '512'
+      Memory: '1024'
+      ExecutionRoleArn: !ImportValue
+        Fn::Sub: easybid-${EnvironmentName}-TaskExecutionRoleArn
+      TaskRoleArn: !ImportValue
+        Fn::Sub: easybid-${EnvironmentName}-TaskRoleArn
+      ContainerDefinitions:
+        - Name: easybid-backend
+          Image: !Sub ${AWSAccountId}.dkr.ecr.us-east-2.amazonaws.com/easybid-backend:${BackendImageTag}
+          Essential: true
+          PortMappings:
+            - ContainerPort: 4000
+              Protocol: tcp
+          Environment:
+            - Name: PORT
+              Value: '4000'
+            - Name: NODE_ENV
+              Value: production
+            - Name: CORS_ORIGINS
+              # After deployment, replace with ALB DNS or your custom domain
+              Value: '*'
+          Secrets:
+            # ── CONNECTION POINT: Backend → PostgreSQL ──
+            # These secrets are passed as full ARNs (with the random suffix)
+            # because ECS requires the complete ARN to resolve them.
+            - Name: DATABASE_URL
+              ValueFrom: !Ref DatabaseUrlSecretArn
+            - Name: JWT_SECRET
+              ValueFrom: !Ref JwtSecretArn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/easybid-backend
+              awslogs-region: us-east-2
+              awslogs-stream-prefix: ecs
+
+  # ---------- Frontend Task Definition ----------
+  FrontendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: easybid-frontend
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !ImportValue
+        Fn::Sub: easybid-${EnvironmentName}-TaskExecutionRoleArn
+      TaskRoleArn: !ImportValue
+        Fn::Sub: easybid-${EnvironmentName}-TaskRoleArn
+      ContainerDefinitions:
+        - Name: easybid-frontend
+          Image: !Sub ${AWSAccountId}.dkr.ecr.us-east-2.amazonaws.com/easybid-frontend:${FrontendImageTag}
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/easybid-frontend
+              awslogs-region: us-east-2
+              awslogs-stream-prefix: ecs
+
+  # ---------- Backend Service ----------
+  BackendService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: easybid-backend
+      Cluster: !ImportValue
+        Fn::Sub: easybid-${EnvironmentName}-ClusterName
+      TaskDefinition: !Ref BackendTaskDefinition
+      DesiredCount: !Ref BackendDesiredCount
+      LaunchType: FARGATE
+      EnableExecuteCommand: true
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: easybid-${EnvironmentName}-BackendSecurityGroup
+          Subnets:
+            - !ImportValue
+              Fn::Sub: easybid-${EnvironmentName}-PublicSubnet1
+            - !ImportValue
+              Fn::Sub: easybid-${EnvironmentName}-PublicSubnet2
+      LoadBalancers:
+        - ContainerName: easybid-backend
+          ContainerPort: 4000
+          TargetGroupArn: !ImportValue
+            Fn::Sub: easybid-${EnvironmentName}-BackendTargetGroupArn
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 50
+        MaximumPercent: 200
+
+  # ---------- Frontend Service ----------
+  FrontendService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: easybid-frontend
+      Cluster: !ImportValue
+        Fn::Sub: easybid-${EnvironmentName}-ClusterName
+      TaskDefinition: !Ref FrontendTaskDefinition
+      DesiredCount: !Ref FrontendDesiredCount
+      LaunchType: FARGATE
+      EnableExecuteCommand: true
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: easybid-${EnvironmentName}-FrontendSecurityGroup
+          Subnets:
+            - !ImportValue
+              Fn::Sub: easybid-${EnvironmentName}-PublicSubnet1
+            - !ImportValue
+              Fn::Sub: easybid-${EnvironmentName}-PublicSubnet2
+      LoadBalancers:
+        - ContainerName: easybid-frontend
+          ContainerPort: 80
+          TargetGroupArn: !ImportValue
+            Fn::Sub: easybid-${EnvironmentName}-FrontendTargetGroupArn
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 50
+        MaximumPercent: 200
+
+Outputs:
+  BackendServiceName:
+    Value: !GetAtt BackendService.Name
+
+  FrontendServiceName:
+    Value: !GetAtt FrontendService.Name

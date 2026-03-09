@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EasyBid - ECS Cluster, ECR repos, IAM roles, CloudWatch log groups
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+
+  AWSAccountId:
+    Type: String
+    Default: '263701502489'
+
+Resources:
+  # ---------- ECS Cluster ----------
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub easybid-${EnvironmentName}
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # ---------- ECR Repositories ----------
+  BackendECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: easybid-backend
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 10 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+  FrontendECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: easybid-frontend
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 10 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+  # ---------- CloudWatch Log Groups ----------
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/easybid-backend
+      RetentionInDays: 30
+
+  FrontendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/easybid-frontend
+      RetentionInDays: 30
+
+  # ---------- IAM Roles ----------
+
+  # Task Execution Role: used by ECS to pull images and read secrets
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub easybid-${EnvironmentName}-task-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub arn:aws:secretsmanager:us-east-2:${AWSAccountId}:secret:easybid/*
+
+  # Task Role: used by the running container (application-level AWS permissions)
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub easybid-${EnvironmentName}-task-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      # SSM permissions required for ECS Exec (ssh into containers)
+      Policies:
+        - PolicyName: ECSExecPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                Resource: '*'
+
+Outputs:
+  ClusterName:
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-ClusterName
+
+  ClusterArn:
+    Value: !GetAtt ECSCluster.Arn
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-ClusterArn
+
+  BackendECRUri:
+    Value: !GetAtt BackendECR.RepositoryUri
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-BackendECRUri
+
+  FrontendECRUri:
+    Value: !GetAtt FrontendECR.RepositoryUri
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-FrontendECRUri
+
+  TaskExecutionRoleArn:
+    Value: !GetAtt ECSTaskExecutionRole.Arn
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-TaskExecutionRoleArn
+
+  TaskRoleArn:
+    Value: !GetAtt ECSTaskRole.Arn
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-TaskRoleArn

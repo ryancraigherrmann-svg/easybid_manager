@@ -1,0 +1,65 @@
+# =============================================================================
+# GitHub Actions — EasyBid Frontend CI/CD
+#
+# Place this file at: easybid_ui/.github/workflows/deploy.yml
+#
+# Triggers on push to main branch.
+# Builds Docker image → pushes to ECR → updates ECS service.
+#
+# Required GitHub Secrets (set in repo Settings → Secrets):
+#   AWS_ACCESS_KEY_ID       — IAM user with ECR + ECS permissions
+#   AWS_SECRET_ACCESS_KEY   — IAM user secret key
+# =============================================================================
+
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY: easybid-frontend
+  ECS_CLUSTER: easybid-production
+  ECS_SERVICE: easybid-frontend
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # No VITE_GRAPHQL_URL or VITE_API_URL build args needed.
+          # The React app uses relative paths (/graphql, /api/*) which
+          # the ALB routes to the backend automatically.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION

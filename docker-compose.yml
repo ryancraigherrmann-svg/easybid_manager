@@ -1,0 +1,88 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: easybid
+      POSTGRES_PASSWORD: easybid
+      POSTGRES_DB: easybid
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5431:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U easybid -d easybid"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - easybid-network
+
+  backend:
+    build:
+      context: ./easybid_be
+      dockerfile: Dockerfile
+      target: builder          # stop at the node stage so npm/ts-node-dev are available
+    environment:
+      DATABASE_URL: postgresql://easybid:easybid@db:5432/easybid
+      PORT: 4000
+      NODE_ENV: development
+      CORS_ORIGINS: http://localhost:5173,http://ui:5173
+    volumes:
+      - ./easybid_be:/app
+      - /app/node_modules
+    command: sh -c "npm install && npx prisma generate --schema=./schema.prisma && npm run dev"
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - easybid-network
+
+  ui:
+    build:
+      context: ./easybid_ui
+      dockerfile: Dockerfile
+      target: builder          # stop at the node stage so npm/vite are available
+    environment:
+      # Clear the vars baked into the Dockerfile builder stage so the
+      # Vite proxy handles /graphql and /api (same-origin, no CORS).
+      VITE_GRAPHQL_URL: ""
+      VITE_API_URL: ""
+      NODE_ENV: development
+      PORT: 5173
+    volumes:
+      - ./easybid_ui:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install --silent && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+    networks:
+      - easybid-network
+
+  presto:
+    image: trinodb/trino:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v1/info || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - easybid-network
+
+volumes:
+  db-data:
+
+networks:
+  easybid-network:
+    driver: bridge

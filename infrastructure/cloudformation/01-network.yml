@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  EasyBid - Security groups deployed into the EXISTING VPC where RDS lives.
+  No VPC, subnets, IGW, or NAT are created — we reference what already exists.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging]
+
+  # ── Existing VPC and Subnet IDs (from your AWS account) ──
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: The existing VPC where RDS is deployed
+
+  PublicSubnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing public subnet (AZ a) — used by ALB
+
+  PublicSubnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing public subnet (AZ b or c) — used by ALB
+
+  PrivateSubnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing private subnet (AZ a) — used by ECS tasks
+
+  PrivateSubnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing private subnet (AZ b or c) — used by ECS tasks
+
+  RDSSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Existing security group attached to the RDS instance
+
+Resources:
+  # ---------- Security Groups (only new resources we create) ----------
+
+  # ALB: accepts traffic from the internet
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP/HTTPS to ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub easybid-${EnvironmentName}-alb-sg
+
+  # Frontend: only accepts traffic from ALB
+  FrontendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic from ALB to Frontend
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub easybid-${EnvironmentName}-frontend-sg
+
+  # Backend: accepts traffic from ALB
+  BackendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic from ALB to Backend
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 4000
+          ToPort: 4000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub easybid-${EnvironmentName}-backend-sg
+
+  # Allow Backend → RDS by adding an ingress rule to the EXISTING RDS SG
+  RDSIngressFromBackend:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref RDSSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref BackendSecurityGroup
+      Description: Allow ECS backend containers to reach RDS
+
+Outputs:
+  VpcId:
+    Value: !Ref VpcId
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-VpcId
+
+  PublicSubnet1Id:
+    Value: !Ref PublicSubnet1Id
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-PublicSubnet1
+
+  PublicSubnet2Id:
+    Value: !Ref PublicSubnet2Id
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-PublicSubnet2
+
+  PrivateSubnet1Id:
+    Value: !Ref PrivateSubnet1Id
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-PrivateSubnet1
+
+  PrivateSubnet2Id:
+    Value: !Ref PrivateSubnet2Id
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-PrivateSubnet2
+
+  ALBSecurityGroupId:
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-ALBSecurityGroup
+
+  FrontendSecurityGroupId:
+    Value: !Ref FrontendSecurityGroup
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-FrontendSecurityGroup
+
+  BackendSecurityGroupId:
+    Value: !Ref BackendSecurityGroup
+    Export:
+      Name: !Sub easybid-${EnvironmentName}-BackendSecurityGroup

@@ -1,0 +1,151 @@
+name: Deploy Backend to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+  AWS_ACCOUNT_ID: 263701502489
+  ECR_REGISTRY: 263701502489.dkr.ecr.us-east-2.amazonaws.com
+  BACKEND_REPO: easybid-backend
+  ECS_CLUSTER: easybid
+  BACKEND_SERVICE: easybid_be-a631
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHub-Actions-Role
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$BACKEND_REPO:latest -t $ECR_REGISTRY/$BACKEND_REPO:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$BACKEND_REPO:latest
+          docker push $ECR_REGISTRY/$BACKEND_REPO:$IMAGE_TAG
+
+      - name: Create task definition
+        id: backend-task-def
+        run: |
+          cat > /tmp/task-def.json << 'EOF'
+          {
+            "family": "easybid-backend",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "512",
+            "memory": "1024",
+            "containerDefinitions": [
+              {
+                "name": "easybid-backend",
+                "image": "${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO }}:${{ github.sha }}",
+                "portMappings": [
+                  {
+                    "containerPort": 4000,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environment": [
+                  {
+                    "name": "PORT",
+                    "value": "4000"
+                  },
+                  {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "CORS_ORIGINS",
+                    "value": "*"
+                  }
+                ],
+                "secrets": [
+                  {
+                    "name": "DATABASE_URL",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/database-url"
+                  }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/easybid-backend",
+                    "awslogs-region": "us-east-2",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                },
+                "essential": true
+              }
+            ],
+            "executionRoleArn": "arn:aws:iam::263701502489:role/ecsTaskExecutionRole",
+            "taskRoleArn": "arn:aws:iam::263701502489:role/ecsTaskRole"
+          }
+          EOF
+          echo "task_def=/tmp/task-def.json" >> $GITHUB_OUTPUT
+
+      - name: Deploy to ECS
+        run: |
+          TASK_DEF=$(cat ${{ steps.backend-task-def.outputs.task_def }})
+          
+          aws ecs register-task-definition \
+            --region ${{ env.AWS_REGION }} \
+            --cli-input-json "$(echo $TASK_DEF | jq -c '.')"
+
+          TASK_DEF_ARN=$(aws ecs describe-task-definition \
+            --task-definition easybid-backend \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.BACKEND_SERVICE }} \
+            --task-definition $TASK_DEF_ARN \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Run database migrations
+        if: github.ref == 'refs/heads/main'
+        run: |
+          TASK_ARN=$(aws ecs list-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service-name ${{ env.BACKEND_SERVICE }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskArns[0]' \
+            --output text)
+          
+          if [ ! -z "$TASK_ARN" ] && [ "$TASK_ARN" != "None" ]; then
+            aws ecs execute-command \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --task $TASK_ARN \
+              --container easybid-backend \
+              --command "npx prisma migrate deploy" \
+              --interactive \
+              --region ${{ env.AWS_REGION }}
+          fi
+
+      - name: Deployment Notification
+        if: always()
+        run: |
+          echo "Backend Deployment Status: ${{ job.status }}"
+          echo "Image: ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO }}:${{ github.sha }}"

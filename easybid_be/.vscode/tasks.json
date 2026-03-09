@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Upgrade to Prisma 7+ and update config",
+			"type": "shell",
+			"command": "npm install prisma@latest @prisma/client@latest --save-dev && npx prisma -v"
+		}
+	]
+}

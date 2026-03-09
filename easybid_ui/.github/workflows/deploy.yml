@@ -1,0 +1,125 @@
+name: Deploy Frontend to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+  AWS_ACCOUNT_ID: 263701502489
+  ECR_REGISTRY: 263701502489.dkr.ecr.us-east-2.amazonaws.com
+  FRONTEND_REPO: easybid-frontend
+  ECS_CLUSTER: easybid
+  FRONTEND_SERVICE: easybid_ui-0764
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHub-Actions-Role
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            --build-arg VITE_GRAPHQL_URL=/graphql \
+            --build-arg VITE_API_URL=/api \
+            -t $ECR_REGISTRY/$FRONTEND_REPO:latest \
+            -t $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG \
+            .
+          docker push $ECR_REGISTRY/$FRONTEND_REPO:latest
+          docker push $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG
+
+      - name: Create task definition
+        id: frontend-task-def
+        run: |
+          cat > /tmp/task-def.json << 'EOF'
+          {
+            "family": "easybid-frontend",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "256",
+            "memory": "512",
+            "containerDefinitions": [
+              {
+                "name": "easybid-frontend",
+                "image": "${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO }}:${{ github.sha }}",
+                "portMappings": [
+                  {
+                    "containerPort": 80,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environment": [
+                  {
+                    "name": "VITE_GRAPHQL_URL",
+                    "value": "/graphql"
+                  },
+                  {
+                    "name": "VITE_API_URL",
+                    "value": "/api"
+                  }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/easybid-frontend",
+                    "awslogs-region": "us-east-2",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                },
+                "essential": true
+              }
+            ],
+            "executionRoleArn": "arn:aws:iam::263701502489:role/ecsTaskExecutionRole"
+          }
+          EOF
+          echo "task_def=/tmp/task-def.json" >> $GITHUB_OUTPUT
+
+      - name: Deploy to ECS
+        run: |
+          TASK_DEF=$(cat ${{ steps.frontend-task-def.outputs.task_def }})
+          
+          aws ecs register-task-definition \
+            --region ${{ env.AWS_REGION }} \
+            --cli-input-json "$(echo $TASK_DEF | jq -c '.')"
+
+          TASK_DEF_ARN=$(aws ecs describe-task-definition \
+            --task-definition easybid-frontend \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.FRONTEND_SERVICE }} \
+            --task-definition $TASK_DEF_ARN \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deployment Notification
+        if: always()
+        run: |
+          echo "Frontend Deployment Status: ${{ job.status }}"
+          echo "Image: ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO }}:${{ github.sha }}"

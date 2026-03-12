@@ -36,9 +36,13 @@ import { useAuth } from './AuthProvider';
 import { UPDATE_RFP } from '../graphql/updateRFP';
 import { UPDATE_BID } from '../graphql/updateBid';
 import { CREATE_JOB } from '../graphql/createJob';
+import { NOTIFY_RFP_RECIPIENTS } from '../graphql/notifyRFPRecipients';
 import CreateBidDialog from './CreateBidDialog';
 import BidBreakdownDialog from './BidBreakdownDialog';
 import Chip from '@mui/material/Chip';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import SendIcon from '@mui/icons-material/Send';
 import { formatCurrency } from '../lib/utils';
 
 export interface RFPDetailViewProps {
@@ -87,6 +91,8 @@ const RFPDetailView: React.FC<RFPDetailViewProps> = ({ open, onClose, rfp }) => 
   const [updateRfp] = useMutation(UPDATE_RFP);
   const [updateBid] = useMutation(UPDATE_BID);
   const [createJob] = useMutation(CREATE_JOB);
+  const [notifyRecipients, { loading: notifyLoading }] = useMutation(NOTIFY_RFP_RECIPIENTS);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
 
   // Find the accepted bid (if any) from the fetched bids
   const acceptedBid = data?.bidsForRFP?.find((b: any) => b.approved) ?? null;
@@ -274,6 +280,26 @@ const RFPDetailView: React.FC<RFPDetailViewProps> = ({ open, onClose, rfp }) => 
                             alert(`Failed to update emails: ${e.message || e}`);
                           }
                         }}>Save</Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="success"
+                          startIcon={<SendIcon />}
+                          disabled={notifyLoading || !emailList || emailList.length === 0}
+                          onClick={async () => {
+                            if (!rfp?.id || !emailList || emailList.length === 0) return;
+                            try {
+                              // Save emails first, then notify
+                              await updateRfp({ variables: { id: rfp.id, input: { emailList, emailGroupId: selectedEmailGroup === '' ? null : selectedEmailGroup } } });
+                              await notifyRecipients({ variables: { rfpId: rfp.id, emails: emailList } });
+                              setSnackbar({ open: true, message: `Notification sent to ${emailList.length} recipient(s)!`, severity: 'success' });
+                            } catch (e: any) {
+                              setSnackbar({ open: true, message: `Failed to notify: ${e.message || e}`, severity: 'error' });
+                            }
+                          }}
+                        >
+                          {notifyLoading ? 'Sending...' : 'Notify Recipients'}
+                        </Button>
                       </Box>
                       <List dense>
                         {(emailList || []).map((e: string, idx: number) => (
@@ -442,6 +468,20 @@ const RFPDetailView: React.FC<RFPDetailViewProps> = ({ open, onClose, rfp }) => 
       <DialogActions>
         <Button onClick={onClose} color="primary">Close</Button>
       </DialogActions>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <CreateBidDialog open={bidOpen} onClose={handleBidClose} rfpId={rfp?.id} onCreated={handleBidCreated} />
       <BidBreakdownDialog open={breakdownOpen} onClose={() => setBreakdownOpen(false)} bid={selectedBid} />
     </Dialog>

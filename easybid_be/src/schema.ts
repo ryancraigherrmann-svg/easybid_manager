@@ -82,6 +82,13 @@ export const typeDefs = gql`
     updatedAt: String!
   }
 
+  type JobType {
+    id: Int!
+    name: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
   type WeekBucket {
     weekStart: String!
     weekLabel: String!
@@ -126,6 +133,7 @@ export const typeDefs = gql`
     rfps: [RFP!]!
     emailGroups(company: String): [EmailGroup!]!
     jobs: [Job!]!
+    jobTypes: [JobType!]!
     bidsForRFP(rfpId: Int!): [Bid!]!
     analytics(startDate: String, endDate: String): AnalyticsData!
   }
@@ -219,5 +227,8 @@ export const typeDefs = gql`
     updateEmailGroup(id: Int!, input: UpdateEmailGroupInput!): EmailGroup!
     deleteEmailGroup(id: Int!): Boolean!
     createJob(input: CreateJobInput!): Job!
+    createJobType(name: String!): JobType!
+    deleteJobType(id: Int!): Boolean!
+    notifyRFPRecipients(rfpId: Int!, emails: [String!]!): Boolean!
   }
 `;

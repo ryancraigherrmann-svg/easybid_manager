@@ -4,8 +4,10 @@ import RFPTable from "./Components/RFPTable";
 import Box from '@mui/material/Box';
 import { AuthProvider, useAuth } from "./Components/AuthProvider";
 import AuthScreen from "./Components/AuthScreen";
+import VerifyEmail from "./Components/VerifyEmail";
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { ThemeModeProvider, useThemeMode } from './Components/ThemeModeContext';
+import { ViewSettingsProvider, useViewSettings } from './Components/ViewSettingsContext';
 
 const sharedOverrides = {
   typography: {
@@ -107,6 +109,23 @@ const darkTheme = createTheme({
 
 function InnerApp() {
   const { user } = useAuth();
+  const { viewSettings } = useViewSettings();
+
+  // Handle /verify-email?token=... route
+  const params = new URLSearchParams(window.location.search);
+  const verifyToken = window.location.pathname === '/verify-email' ? params.get('token') : null;
+
+  if (verifyToken) {
+    return (
+      <VerifyEmail
+        token={verifyToken}
+        onDone={() => {
+          window.history.replaceState({}, '', '/');
+          window.location.reload();
+        }}
+      />
+    );
+  }
 
   if (!user) {
     return <AuthScreen />;
@@ -115,8 +134,8 @@ function InnerApp() {
   return (
     <SideDrawer>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
-        <RFPTable />
-        <BidTable />
+        {viewSettings.showRFPs && <RFPTable />}
+        {viewSettings.showBids && <BidTable />}
       </Box>
     </SideDrawer>
   );
@@ -135,8 +154,10 @@ function ThemedApp() {
 
 export default function App() {
   return (
-    <ThemeModeProvider>
-      <ThemedApp />
-    </ThemeModeProvider>
+    <ViewSettingsProvider>
+      <ThemeModeProvider>
+        <ThemedApp />
+      </ThemeModeProvider>
+    </ViewSettingsProvider>
   );
 }

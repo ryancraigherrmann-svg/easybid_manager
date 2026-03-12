@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type User = { id: number; email: string; firstName?: string; lastName?: string; companyId?: number | null } | null;
+type User = { id: number; email: string; firstName?: string; lastName?: string; companyId?: number | null; isAdmin?: boolean; emailVerified?: boolean } | null;
 
 type AuthContextValue = {
   user: User;
@@ -48,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!res.ok) throw new Error('Invalid credentials');
     const data = await res.json();
     setToken(data.token);
-    // normalize user shape to include companyId
-    const u = { ...data.user, companyId: data.user?.companyId ?? null };
+    // normalize user shape to include companyId, isAdmin, and emailVerified
+    const u = { ...data.user, companyId: data.user?.companyId ?? null, isAdmin: data.user?.isAdmin ?? false, emailVerified: data.user?.emailVerified ?? false };
     setUser(u);
     persist(data.token, u, 60 * 60 * 1000);
   };
@@ -61,11 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify({ email, password, firstName, lastName, company }),
     });
     if (!res.ok) throw new Error('Signup failed');
-    const data = await res.json();
-    setToken(data.token);
-    const u = { ...data.user, companyId: data.user?.companyId ?? null };
-    setUser(u);
-    persist(data.token, u, 60 * 60 * 1000);
+    // Don't auto-login — user must verify their email first.
+    // The SignUp component will show the "check your email" screen.
   };
 
   const logout = () => {

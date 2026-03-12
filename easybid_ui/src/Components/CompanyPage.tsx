@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, List, ListItem, Divider, TextField, Button, IconButton } from '@mui/material';
+import { Box, Typography, List, ListItem, Divider, TextField, Button, IconButton, Chip, Switch, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useAuth } from './AuthProvider';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { GET_EMAIL_GROUPS } from '../graphql/emailGroups';
@@ -10,7 +11,7 @@ import { UPDATE_EMAIL_GROUP } from '../graphql/updateEmailGroup';
 import { DELETE_EMAIL_GROUP } from '../graphql/deleteEmailGroup';
 import { useTheme } from '@mui/material/styles';
 
-type UserItem = { id: number; email: string };
+type UserItem = { id: number; email: string; isAdmin?: boolean; firstName?: string; lastName?: string };
 type JobType = string;
 
 const CompanyPage: React.FC = () => {
@@ -96,7 +97,11 @@ const CompanyPage: React.FC = () => {
               ) : (
                 <List dense>
                   {users.map((u) => (
-                    <ListItem key={u.id}>{u.email}</ListItem>
+                    <ListItem key={u.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography>{u.firstName || u.lastName ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() : u.email}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>({u.email})</Typography>
+                      {u.isAdmin && <Chip label="Admin" size="small" color="primary" sx={{ ml: 1, fontWeight: 600 }} />}
+                    </ListItem>
                   ))}
                 </List>
               )}
@@ -108,6 +113,71 @@ const CompanyPage: React.FC = () => {
           <Typography variant="h6">Financial Information</Typography>
           <Typography variant="body2">No financial data available yet.</Typography>
         </Box>
+
+        {/* Admin Management Section - only visible to admins */}
+        {user?.isAdmin && (
+          <Box sx={{ backgroundColor: cardBg, borderRadius: 2, p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <AdminPanelSettingsIcon color="primary" />
+              <Typography variant="h6">Admin Management</Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Manage admin access for users in your company. Admins can see all company data and manage other users' roles.
+            </Typography>
+            <Divider sx={{ mb: 1 }} />
+            <List dense>
+              {users.length === 0 && <ListItem>No users found</ListItem>}
+              {users.map((u) => (
+                <ListItem key={u.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography sx={{ fontWeight: 600 }}>
+                      {u.firstName || u.lastName ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() : u.email}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">{u.email}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {u.id === user.id ? (
+                      <Tooltip title="You cannot change your own admin status">
+                        <Chip label="Admin (You)" size="small" color="primary" />
+                      </Tooltip>
+                    ) : (
+                      <>
+                        <Typography variant="body2" color={u.isAdmin ? 'primary' : 'text.secondary'}>
+                          {u.isAdmin ? 'Admin' : 'User'}
+                        </Typography>
+                        <Switch
+                          checked={u.isAdmin ?? false}
+                          onChange={async (_, checked) => {
+                            try {
+                              const res = await fetch(`/api/company/users/${u.id}/admin`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                },
+                                body: JSON.stringify({ isAdmin: checked }),
+                              });
+                              if (!res.ok) {
+                                const err = await res.json().catch(() => ({ error: 'Failed' }));
+                                alert(err.error || 'Failed to update admin status');
+                                return;
+                              }
+                              // Update local state
+                              setUsers((prev) => prev.map((usr) => usr.id === u.id ? { ...usr, isAdmin: checked } : usr));
+                            } catch (e: any) {
+                              alert(`Error: ${e.message || e}`);
+                            }
+                          }}
+                          size="small"
+                        />
+                      </>
+                    )}
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
 
         <Box sx={{ backgroundColor: cardBg, borderRadius: 2, p: 2 }}>
           <Typography variant="h6">Email Groups</Typography>

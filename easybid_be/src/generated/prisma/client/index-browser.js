@@ -204,6 +204,9 @@ exports.Prisma.UserScalarFieldEnum = {
   companyId: 'companyId',
   passwordHash: 'passwordHash',
   isAdmin: 'isAdmin',
+  emailVerified: 'emailVerified',
+  verificationToken: 'verificationToken',
+  verificationExpiry: 'verificationExpiry',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -213,6 +216,13 @@ exports.Prisma.CompanyScalarFieldEnum = {
   name: 'name',
   type: 'type',
   typeOfWork: 'typeOfWork',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.JobTypeScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -259,6 +269,7 @@ exports.Prisma.ModelName = {
   BidLineItem: 'BidLineItem',
   User: 'User',
   Company: 'Company',
+  JobType: 'JobType',
   CompanyFinancial: 'CompanyFinancial'
 };
 

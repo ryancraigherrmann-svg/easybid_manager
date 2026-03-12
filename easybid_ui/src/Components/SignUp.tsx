@@ -9,18 +9,65 @@ export default function SignUp({ compact = false }: { compact?: boolean }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [signedUp, setSignedUp] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
       await signup(email, password, firstName, lastName, company);
+      setSignedUp(true);
     } catch (err: any) {
       setError(err?.message || 'Signup failed');
     }
   };
 
-  const card = (
+  const handleResend = async () => {
+    setResending(true);
+    setResendMsg(null);
+    try {
+      const res = await fetch('/api/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setResendMsg(data.message || 'Verification email sent.');
+    } catch {
+      setResendMsg('Failed to resend. Please try again.');
+    }
+    setResending(false);
+  };
+
+  const card = signedUp ? (
+    <div style={{ width: 420, padding: 28, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', background: '#FFFFFF', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>📧</div>
+      <h2 style={{ color: '#1E3A50', fontWeight: 700, marginBottom: 12 }}>Check your email</h2>
+      <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: 16 }}>
+        We've sent a verification link to <strong>{email}</strong>.<br />
+        Please check your inbox and click the link to activate your account.
+      </p>
+      <button
+        onClick={handleResend}
+        disabled={resending}
+        style={{
+          padding: '8px 20px',
+          background: 'transparent',
+          color: '#2C5272',
+          border: '1px solid #2C5272',
+          borderRadius: 6,
+          cursor: resending ? 'default' : 'pointer',
+          fontWeight: 600,
+          fontSize: '0.9rem',
+        }}
+      >
+        {resending ? 'Sending...' : 'Resend verification email'}
+      </button>
+      {resendMsg && <p style={{ color: '#16a34a', marginTop: 8, fontSize: '0.85rem' }}>{resendMsg}</p>}
+    </div>
+  ) : (
     <div style={{ width: 420, padding: 28, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', background: '#FFFFFF', border: '1px solid #E2E8F0' }}>
       <h2 style={{ textAlign: 'center', marginBottom: 12, color: '#1E3A50', fontWeight: 700 }}>Create account</h2>
       <form onSubmit={submit}>

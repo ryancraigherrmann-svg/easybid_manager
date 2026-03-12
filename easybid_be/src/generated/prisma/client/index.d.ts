@@ -54,6 +54,11 @@ export type User = $Result.DefaultSelection<Prisma.$UserPayload>
  */
 export type Company = $Result.DefaultSelection<Prisma.$CompanyPayload>
 /**
+ * Model JobType
+ * 
+ */
+export type JobType = $Result.DefaultSelection<Prisma.$JobTypePayload>
+/**
  * Model CompanyFinancial
  * 
  */
@@ -255,6 +260,16 @@ export class PrismaClient<
     * ```
     */
   get company(): Prisma.CompanyDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.jobType`: Exposes CRUD operations for the **JobType** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more JobTypes
+    * const jobTypes = await prisma.jobType.findMany()
+    * ```
+    */
+  get jobType(): Prisma.JobTypeDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.companyFinancial`: Exposes CRUD operations for the **CompanyFinancial** model.
@@ -707,6 +722,7 @@ export namespace Prisma {
     BidLineItem: 'BidLineItem',
     User: 'User',
     Company: 'Company',
+    JobType: 'JobType',
     CompanyFinancial: 'CompanyFinancial'
   };
 
@@ -723,7 +739,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "bid" | "bidPosting" | "rFP" | "emailGroup" | "job" | "bidLineItem" | "user" | "company" | "companyFinancial"
+      modelProps: "bid" | "bidPosting" | "rFP" | "emailGroup" | "job" | "bidLineItem" | "user" | "company" | "jobType" | "companyFinancial"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1319,6 +1335,80 @@ export namespace Prisma {
           }
         }
       }
+      JobType: {
+        payload: Prisma.$JobTypePayload<ExtArgs>
+        fields: Prisma.JobTypeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.JobTypeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.JobTypeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>
+          }
+          findFirst: {
+            args: Prisma.JobTypeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.JobTypeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>
+          }
+          findMany: {
+            args: Prisma.JobTypeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>[]
+          }
+          create: {
+            args: Prisma.JobTypeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>
+          }
+          createMany: {
+            args: Prisma.JobTypeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.JobTypeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>[]
+          }
+          delete: {
+            args: Prisma.JobTypeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>
+          }
+          update: {
+            args: Prisma.JobTypeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>
+          }
+          deleteMany: {
+            args: Prisma.JobTypeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.JobTypeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.JobTypeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>[]
+          }
+          upsert: {
+            args: Prisma.JobTypeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$JobTypePayload>
+          }
+          aggregate: {
+            args: Prisma.JobTypeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateJobType>
+          }
+          groupBy: {
+            args: Prisma.JobTypeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<JobTypeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.JobTypeCountArgs<ExtArgs>
+            result: $Utils.Optional<JobTypeCountAggregateOutputType> | number
+          }
+        }
+      }
       CompanyFinancial: {
         payload: Prisma.$CompanyFinancialPayload<ExtArgs>
         fields: Prisma.CompanyFinancialFieldRefs
@@ -1509,6 +1599,7 @@ export namespace Prisma {
     bidLineItem?: BidLineItemOmit
     user?: UserOmit
     company?: CompanyOmit
+    jobType?: JobTypeOmit
     companyFinancial?: CompanyFinancialOmit
   }
 
@@ -8882,6 +8973,9 @@ export namespace Prisma {
     companyId: number | null
     passwordHash: string | null
     isAdmin: boolean | null
+    emailVerified: boolean | null
+    verificationToken: string | null
+    verificationExpiry: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8894,6 +8988,9 @@ export namespace Prisma {
     companyId: number | null
     passwordHash: string | null
     isAdmin: boolean | null
+    emailVerified: boolean | null
+    verificationToken: string | null
+    verificationExpiry: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8906,6 +9003,9 @@ export namespace Prisma {
     companyId: number
     passwordHash: number
     isAdmin: number
+    emailVerified: number
+    verificationToken: number
+    verificationExpiry: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -8930,6 +9030,9 @@ export namespace Prisma {
     companyId?: true
     passwordHash?: true
     isAdmin?: true
+    emailVerified?: true
+    verificationToken?: true
+    verificationExpiry?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8942,6 +9045,9 @@ export namespace Prisma {
     companyId?: true
     passwordHash?: true
     isAdmin?: true
+    emailVerified?: true
+    verificationToken?: true
+    verificationExpiry?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8954,6 +9060,9 @@ export namespace Prisma {
     companyId?: true
     passwordHash?: true
     isAdmin?: true
+    emailVerified?: true
+    verificationToken?: true
+    verificationExpiry?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -9053,6 +9162,9 @@ export namespace Prisma {
     companyId: number | null
     passwordHash: string
     isAdmin: boolean
+    emailVerified: boolean
+    verificationToken: string | null
+    verificationExpiry: Date | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -9084,6 +9196,9 @@ export namespace Prisma {
     companyId?: boolean
     passwordHash?: boolean
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: boolean
+    verificationExpiry?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     company?: boolean | User$companyArgs<ExtArgs>
@@ -9097,6 +9212,9 @@ export namespace Prisma {
     companyId?: boolean
     passwordHash?: boolean
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: boolean
+    verificationExpiry?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     company?: boolean | User$companyArgs<ExtArgs>
@@ -9110,6 +9228,9 @@ export namespace Prisma {
     companyId?: boolean
     passwordHash?: boolean
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: boolean
+    verificationExpiry?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     company?: boolean | User$companyArgs<ExtArgs>
@@ -9123,11 +9244,14 @@ export namespace Prisma {
     companyId?: boolean
     passwordHash?: boolean
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: boolean
+    verificationExpiry?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "firstName" | "lastName" | "companyId" | "passwordHash" | "isAdmin" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "firstName" | "lastName" | "companyId" | "passwordHash" | "isAdmin" | "emailVerified" | "verificationToken" | "verificationExpiry" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     company?: boolean | User$companyArgs<ExtArgs>
   }
@@ -9151,6 +9275,9 @@ export namespace Prisma {
       companyId: number | null
       passwordHash: string
       isAdmin: boolean
+      emailVerified: boolean
+      verificationToken: string | null
+      verificationExpiry: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -9584,6 +9711,9 @@ export namespace Prisma {
     readonly companyId: FieldRef<"User", 'Int'>
     readonly passwordHash: FieldRef<"User", 'String'>
     readonly isAdmin: FieldRef<"User", 'Boolean'>
+    readonly emailVerified: FieldRef<"User", 'Boolean'>
+    readonly verificationToken: FieldRef<"User", 'String'>
+    readonly verificationExpiry: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -11137,6 +11267,1022 @@ export namespace Prisma {
 
 
   /**
+   * Model JobType
+   */
+
+  export type AggregateJobType = {
+    _count: JobTypeCountAggregateOutputType | null
+    _avg: JobTypeAvgAggregateOutputType | null
+    _sum: JobTypeSumAggregateOutputType | null
+    _min: JobTypeMinAggregateOutputType | null
+    _max: JobTypeMaxAggregateOutputType | null
+  }
+
+  export type JobTypeAvgAggregateOutputType = {
+    id: number | null
+  }
+
+  export type JobTypeSumAggregateOutputType = {
+    id: number | null
+  }
+
+  export type JobTypeMinAggregateOutputType = {
+    id: number | null
+    name: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type JobTypeMaxAggregateOutputType = {
+    id: number | null
+    name: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type JobTypeCountAggregateOutputType = {
+    id: number
+    name: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type JobTypeAvgAggregateInputType = {
+    id?: true
+  }
+
+  export type JobTypeSumAggregateInputType = {
+    id?: true
+  }
+
+  export type JobTypeMinAggregateInputType = {
+    id?: true
+    name?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type JobTypeMaxAggregateInputType = {
+    id?: true
+    name?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type JobTypeCountAggregateInputType = {
+    id?: true
+    name?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type JobTypeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which JobType to aggregate.
+     */
+    where?: JobTypeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of JobTypes to fetch.
+     */
+    orderBy?: JobTypeOrderByWithRelationInput | JobTypeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: JobTypeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` JobTypes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` JobTypes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned JobTypes
+    **/
+    _count?: true | JobTypeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: JobTypeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: JobTypeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: JobTypeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: JobTypeMaxAggregateInputType
+  }
+
+  export type GetJobTypeAggregateType<T extends JobTypeAggregateArgs> = {
+        [P in keyof T & keyof AggregateJobType]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateJobType[P]>
+      : GetScalarType<T[P], AggregateJobType[P]>
+  }
+
+
+
+
+  export type JobTypeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: JobTypeWhereInput
+    orderBy?: JobTypeOrderByWithAggregationInput | JobTypeOrderByWithAggregationInput[]
+    by: JobTypeScalarFieldEnum[] | JobTypeScalarFieldEnum
+    having?: JobTypeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: JobTypeCountAggregateInputType | true
+    _avg?: JobTypeAvgAggregateInputType
+    _sum?: JobTypeSumAggregateInputType
+    _min?: JobTypeMinAggregateInputType
+    _max?: JobTypeMaxAggregateInputType
+  }
+
+  export type JobTypeGroupByOutputType = {
+    id: number
+    name: string
+    createdAt: Date
+    updatedAt: Date
+    _count: JobTypeCountAggregateOutputType | null
+    _avg: JobTypeAvgAggregateOutputType | null
+    _sum: JobTypeSumAggregateOutputType | null
+    _min: JobTypeMinAggregateOutputType | null
+    _max: JobTypeMaxAggregateOutputType | null
+  }
+
+  type GetJobTypeGroupByPayload<T extends JobTypeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<JobTypeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof JobTypeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], JobTypeGroupByOutputType[P]>
+            : GetScalarType<T[P], JobTypeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type JobTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["jobType"]>
+
+  export type JobTypeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["jobType"]>
+
+  export type JobTypeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["jobType"]>
+
+  export type JobTypeSelectScalar = {
+    id?: boolean
+    name?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type JobTypeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "createdAt" | "updatedAt", ExtArgs["result"]["jobType"]>
+
+  export type $JobTypePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "JobType"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      name: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["jobType"]>
+    composites: {}
+  }
+
+  type JobTypeGetPayload<S extends boolean | null | undefined | JobTypeDefaultArgs> = $Result.GetResult<Prisma.$JobTypePayload, S>
+
+  type JobTypeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<JobTypeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: JobTypeCountAggregateInputType | true
+    }
+
+  export interface JobTypeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['JobType'], meta: { name: 'JobType' } }
+    /**
+     * Find zero or one JobType that matches the filter.
+     * @param {JobTypeFindUniqueArgs} args - Arguments to find a JobType
+     * @example
+     * // Get one JobType
+     * const jobType = await prisma.jobType.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends JobTypeFindUniqueArgs>(args: SelectSubset<T, JobTypeFindUniqueArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one JobType that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {JobTypeFindUniqueOrThrowArgs} args - Arguments to find a JobType
+     * @example
+     * // Get one JobType
+     * const jobType = await prisma.jobType.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends JobTypeFindUniqueOrThrowArgs>(args: SelectSubset<T, JobTypeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first JobType that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeFindFirstArgs} args - Arguments to find a JobType
+     * @example
+     * // Get one JobType
+     * const jobType = await prisma.jobType.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends JobTypeFindFirstArgs>(args?: SelectSubset<T, JobTypeFindFirstArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first JobType that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeFindFirstOrThrowArgs} args - Arguments to find a JobType
+     * @example
+     * // Get one JobType
+     * const jobType = await prisma.jobType.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends JobTypeFindFirstOrThrowArgs>(args?: SelectSubset<T, JobTypeFindFirstOrThrowArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more JobTypes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all JobTypes
+     * const jobTypes = await prisma.jobType.findMany()
+     * 
+     * // Get first 10 JobTypes
+     * const jobTypes = await prisma.jobType.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const jobTypeWithIdOnly = await prisma.jobType.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends JobTypeFindManyArgs>(args?: SelectSubset<T, JobTypeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a JobType.
+     * @param {JobTypeCreateArgs} args - Arguments to create a JobType.
+     * @example
+     * // Create one JobType
+     * const JobType = await prisma.jobType.create({
+     *   data: {
+     *     // ... data to create a JobType
+     *   }
+     * })
+     * 
+     */
+    create<T extends JobTypeCreateArgs>(args: SelectSubset<T, JobTypeCreateArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many JobTypes.
+     * @param {JobTypeCreateManyArgs} args - Arguments to create many JobTypes.
+     * @example
+     * // Create many JobTypes
+     * const jobType = await prisma.jobType.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends JobTypeCreateManyArgs>(args?: SelectSubset<T, JobTypeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many JobTypes and returns the data saved in the database.
+     * @param {JobTypeCreateManyAndReturnArgs} args - Arguments to create many JobTypes.
+     * @example
+     * // Create many JobTypes
+     * const jobType = await prisma.jobType.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many JobTypes and only return the `id`
+     * const jobTypeWithIdOnly = await prisma.jobType.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends JobTypeCreateManyAndReturnArgs>(args?: SelectSubset<T, JobTypeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a JobType.
+     * @param {JobTypeDeleteArgs} args - Arguments to delete one JobType.
+     * @example
+     * // Delete one JobType
+     * const JobType = await prisma.jobType.delete({
+     *   where: {
+     *     // ... filter to delete one JobType
+     *   }
+     * })
+     * 
+     */
+    delete<T extends JobTypeDeleteArgs>(args: SelectSubset<T, JobTypeDeleteArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one JobType.
+     * @param {JobTypeUpdateArgs} args - Arguments to update one JobType.
+     * @example
+     * // Update one JobType
+     * const jobType = await prisma.jobType.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends JobTypeUpdateArgs>(args: SelectSubset<T, JobTypeUpdateArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more JobTypes.
+     * @param {JobTypeDeleteManyArgs} args - Arguments to filter JobTypes to delete.
+     * @example
+     * // Delete a few JobTypes
+     * const { count } = await prisma.jobType.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends JobTypeDeleteManyArgs>(args?: SelectSubset<T, JobTypeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more JobTypes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many JobTypes
+     * const jobType = await prisma.jobType.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends JobTypeUpdateManyArgs>(args: SelectSubset<T, JobTypeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more JobTypes and returns the data updated in the database.
+     * @param {JobTypeUpdateManyAndReturnArgs} args - Arguments to update many JobTypes.
+     * @example
+     * // Update many JobTypes
+     * const jobType = await prisma.jobType.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more JobTypes and only return the `id`
+     * const jobTypeWithIdOnly = await prisma.jobType.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends JobTypeUpdateManyAndReturnArgs>(args: SelectSubset<T, JobTypeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one JobType.
+     * @param {JobTypeUpsertArgs} args - Arguments to update or create a JobType.
+     * @example
+     * // Update or create a JobType
+     * const jobType = await prisma.jobType.upsert({
+     *   create: {
+     *     // ... data to create a JobType
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the JobType we want to update
+     *   }
+     * })
+     */
+    upsert<T extends JobTypeUpsertArgs>(args: SelectSubset<T, JobTypeUpsertArgs<ExtArgs>>): Prisma__JobTypeClient<$Result.GetResult<Prisma.$JobTypePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of JobTypes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeCountArgs} args - Arguments to filter JobTypes to count.
+     * @example
+     * // Count the number of JobTypes
+     * const count = await prisma.jobType.count({
+     *   where: {
+     *     // ... the filter for the JobTypes we want to count
+     *   }
+     * })
+    **/
+    count<T extends JobTypeCountArgs>(
+      args?: Subset<T, JobTypeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], JobTypeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a JobType.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends JobTypeAggregateArgs>(args: Subset<T, JobTypeAggregateArgs>): Prisma.PrismaPromise<GetJobTypeAggregateType<T>>
+
+    /**
+     * Group by JobType.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {JobTypeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends JobTypeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: JobTypeGroupByArgs['orderBy'] }
+        : { orderBy?: JobTypeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, JobTypeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetJobTypeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the JobType model
+   */
+  readonly fields: JobTypeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for JobType.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__JobTypeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the JobType model
+   */
+  interface JobTypeFieldRefs {
+    readonly id: FieldRef<"JobType", 'Int'>
+    readonly name: FieldRef<"JobType", 'String'>
+    readonly createdAt: FieldRef<"JobType", 'DateTime'>
+    readonly updatedAt: FieldRef<"JobType", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * JobType findUnique
+   */
+  export type JobTypeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * Filter, which JobType to fetch.
+     */
+    where: JobTypeWhereUniqueInput
+  }
+
+  /**
+   * JobType findUniqueOrThrow
+   */
+  export type JobTypeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * Filter, which JobType to fetch.
+     */
+    where: JobTypeWhereUniqueInput
+  }
+
+  /**
+   * JobType findFirst
+   */
+  export type JobTypeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * Filter, which JobType to fetch.
+     */
+    where?: JobTypeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of JobTypes to fetch.
+     */
+    orderBy?: JobTypeOrderByWithRelationInput | JobTypeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for JobTypes.
+     */
+    cursor?: JobTypeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` JobTypes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` JobTypes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of JobTypes.
+     */
+    distinct?: JobTypeScalarFieldEnum | JobTypeScalarFieldEnum[]
+  }
+
+  /**
+   * JobType findFirstOrThrow
+   */
+  export type JobTypeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * Filter, which JobType to fetch.
+     */
+    where?: JobTypeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of JobTypes to fetch.
+     */
+    orderBy?: JobTypeOrderByWithRelationInput | JobTypeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for JobTypes.
+     */
+    cursor?: JobTypeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` JobTypes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` JobTypes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of JobTypes.
+     */
+    distinct?: JobTypeScalarFieldEnum | JobTypeScalarFieldEnum[]
+  }
+
+  /**
+   * JobType findMany
+   */
+  export type JobTypeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * Filter, which JobTypes to fetch.
+     */
+    where?: JobTypeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of JobTypes to fetch.
+     */
+    orderBy?: JobTypeOrderByWithRelationInput | JobTypeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing JobTypes.
+     */
+    cursor?: JobTypeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` JobTypes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` JobTypes.
+     */
+    skip?: number
+    distinct?: JobTypeScalarFieldEnum | JobTypeScalarFieldEnum[]
+  }
+
+  /**
+   * JobType create
+   */
+  export type JobTypeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * The data needed to create a JobType.
+     */
+    data: XOR<JobTypeCreateInput, JobTypeUncheckedCreateInput>
+  }
+
+  /**
+   * JobType createMany
+   */
+  export type JobTypeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many JobTypes.
+     */
+    data: JobTypeCreateManyInput | JobTypeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * JobType createManyAndReturn
+   */
+  export type JobTypeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * The data used to create many JobTypes.
+     */
+    data: JobTypeCreateManyInput | JobTypeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * JobType update
+   */
+  export type JobTypeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * The data needed to update a JobType.
+     */
+    data: XOR<JobTypeUpdateInput, JobTypeUncheckedUpdateInput>
+    /**
+     * Choose, which JobType to update.
+     */
+    where: JobTypeWhereUniqueInput
+  }
+
+  /**
+   * JobType updateMany
+   */
+  export type JobTypeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update JobTypes.
+     */
+    data: XOR<JobTypeUpdateManyMutationInput, JobTypeUncheckedUpdateManyInput>
+    /**
+     * Filter which JobTypes to update
+     */
+    where?: JobTypeWhereInput
+    /**
+     * Limit how many JobTypes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * JobType updateManyAndReturn
+   */
+  export type JobTypeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * The data used to update JobTypes.
+     */
+    data: XOR<JobTypeUpdateManyMutationInput, JobTypeUncheckedUpdateManyInput>
+    /**
+     * Filter which JobTypes to update
+     */
+    where?: JobTypeWhereInput
+    /**
+     * Limit how many JobTypes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * JobType upsert
+   */
+  export type JobTypeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * The filter to search for the JobType to update in case it exists.
+     */
+    where: JobTypeWhereUniqueInput
+    /**
+     * In case the JobType found by the `where` argument doesn't exist, create a new JobType with this data.
+     */
+    create: XOR<JobTypeCreateInput, JobTypeUncheckedCreateInput>
+    /**
+     * In case the JobType was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<JobTypeUpdateInput, JobTypeUncheckedUpdateInput>
+  }
+
+  /**
+   * JobType delete
+   */
+  export type JobTypeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+    /**
+     * Filter which JobType to delete.
+     */
+    where: JobTypeWhereUniqueInput
+  }
+
+  /**
+   * JobType deleteMany
+   */
+  export type JobTypeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which JobTypes to delete
+     */
+    where?: JobTypeWhereInput
+    /**
+     * Limit how many JobTypes to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * JobType without action
+   */
+  export type JobTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the JobType
+     */
+    select?: JobTypeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the JobType
+     */
+    omit?: JobTypeOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model CompanyFinancial
    */
 
@@ -12263,6 +13409,9 @@ export namespace Prisma {
     companyId: 'companyId',
     passwordHash: 'passwordHash',
     isAdmin: 'isAdmin',
+    emailVerified: 'emailVerified',
+    verificationToken: 'verificationToken',
+    verificationExpiry: 'verificationExpiry',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -12280,6 +13429,16 @@ export namespace Prisma {
   };
 
   export type CompanyScalarFieldEnum = (typeof CompanyScalarFieldEnum)[keyof typeof CompanyScalarFieldEnum]
+
+
+  export const JobTypeScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type JobTypeScalarFieldEnum = (typeof JobTypeScalarFieldEnum)[keyof typeof JobTypeScalarFieldEnum]
 
 
   export const CompanyFinancialScalarFieldEnum: {
@@ -12922,6 +14081,9 @@ export namespace Prisma {
     companyId?: IntNullableFilter<"User"> | number | null
     passwordHash?: StringFilter<"User"> | string
     isAdmin?: BoolFilter<"User"> | boolean
+    emailVerified?: BoolFilter<"User"> | boolean
+    verificationToken?: StringNullableFilter<"User"> | string | null
+    verificationExpiry?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     company?: XOR<CompanyNullableScalarRelationFilter, CompanyWhereInput> | null
@@ -12935,6 +14097,9 @@ export namespace Prisma {
     companyId?: SortOrderInput | SortOrder
     passwordHash?: SortOrder
     isAdmin?: SortOrder
+    emailVerified?: SortOrder
+    verificationToken?: SortOrderInput | SortOrder
+    verificationExpiry?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     company?: CompanyOrderByWithRelationInput
@@ -12943,6 +14108,7 @@ export namespace Prisma {
   export type UserWhereUniqueInput = Prisma.AtLeast<{
     id?: number
     email?: string
+    verificationToken?: string
     AND?: UserWhereInput | UserWhereInput[]
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
@@ -12951,10 +14117,12 @@ export namespace Prisma {
     companyId?: IntNullableFilter<"User"> | number | null
     passwordHash?: StringFilter<"User"> | string
     isAdmin?: BoolFilter<"User"> | boolean
+    emailVerified?: BoolFilter<"User"> | boolean
+    verificationExpiry?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     company?: XOR<CompanyNullableScalarRelationFilter, CompanyWhereInput> | null
-  }, "id" | "email">
+  }, "id" | "email" | "verificationToken">
 
   export type UserOrderByWithAggregationInput = {
     id?: SortOrder
@@ -12964,6 +14132,9 @@ export namespace Prisma {
     companyId?: SortOrderInput | SortOrder
     passwordHash?: SortOrder
     isAdmin?: SortOrder
+    emailVerified?: SortOrder
+    verificationToken?: SortOrderInput | SortOrder
+    verificationExpiry?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -12984,6 +14155,9 @@ export namespace Prisma {
     companyId?: IntNullableWithAggregatesFilter<"User"> | number | null
     passwordHash?: StringWithAggregatesFilter<"User"> | string
     isAdmin?: BoolWithAggregatesFilter<"User"> | boolean
+    emailVerified?: BoolWithAggregatesFilter<"User"> | boolean
+    verificationToken?: StringNullableWithAggregatesFilter<"User"> | string | null
+    verificationExpiry?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -13048,6 +14222,55 @@ export namespace Prisma {
     typeOfWork?: StringNullableWithAggregatesFilter<"Company"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Company"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Company"> | Date | string
+  }
+
+  export type JobTypeWhereInput = {
+    AND?: JobTypeWhereInput | JobTypeWhereInput[]
+    OR?: JobTypeWhereInput[]
+    NOT?: JobTypeWhereInput | JobTypeWhereInput[]
+    id?: IntFilter<"JobType"> | number
+    name?: StringFilter<"JobType"> | string
+    createdAt?: DateTimeFilter<"JobType"> | Date | string
+    updatedAt?: DateTimeFilter<"JobType"> | Date | string
+  }
+
+  export type JobTypeOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type JobTypeWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    name?: string
+    AND?: JobTypeWhereInput | JobTypeWhereInput[]
+    OR?: JobTypeWhereInput[]
+    NOT?: JobTypeWhereInput | JobTypeWhereInput[]
+    createdAt?: DateTimeFilter<"JobType"> | Date | string
+    updatedAt?: DateTimeFilter<"JobType"> | Date | string
+  }, "id" | "name">
+
+  export type JobTypeOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: JobTypeCountOrderByAggregateInput
+    _avg?: JobTypeAvgOrderByAggregateInput
+    _max?: JobTypeMaxOrderByAggregateInput
+    _min?: JobTypeMinOrderByAggregateInput
+    _sum?: JobTypeSumOrderByAggregateInput
+  }
+
+  export type JobTypeScalarWhereWithAggregatesInput = {
+    AND?: JobTypeScalarWhereWithAggregatesInput | JobTypeScalarWhereWithAggregatesInput[]
+    OR?: JobTypeScalarWhereWithAggregatesInput[]
+    NOT?: JobTypeScalarWhereWithAggregatesInput | JobTypeScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"JobType"> | number
+    name?: StringWithAggregatesFilter<"JobType"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"JobType"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"JobType"> | Date | string
   }
 
   export type CompanyFinancialWhereInput = {
@@ -13629,6 +14852,9 @@ export namespace Prisma {
     lastName?: string | null
     passwordHash: string
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: string | null
+    verificationExpiry?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     company?: CompanyCreateNestedOneWithoutUsersInput
@@ -13642,6 +14868,9 @@ export namespace Prisma {
     companyId?: number | null
     passwordHash: string
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: string | null
+    verificationExpiry?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -13652,6 +14881,9 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     company?: CompanyUpdateOneWithoutUsersNestedInput
@@ -13665,6 +14897,9 @@ export namespace Prisma {
     companyId?: NullableIntFieldUpdateOperationsInput | number | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13677,6 +14912,9 @@ export namespace Prisma {
     companyId?: number | null
     passwordHash: string
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: string | null
+    verificationExpiry?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -13687,6 +14925,9 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13699,6 +14940,9 @@ export namespace Prisma {
     companyId?: NullableIntFieldUpdateOperationsInput | number | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13763,6 +15007,52 @@ export namespace Prisma {
     name?: NullableStringFieldUpdateOperationsInput | string | null
     type?: NullableStringFieldUpdateOperationsInput | string | null
     typeOfWork?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type JobTypeCreateInput = {
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type JobTypeUncheckedCreateInput = {
+    id?: number
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type JobTypeUpdateInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type JobTypeUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type JobTypeCreateManyInput = {
+    id?: number
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type JobTypeUpdateManyMutationInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type JobTypeUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -14442,6 +15732,9 @@ export namespace Prisma {
     companyId?: SortOrder
     passwordHash?: SortOrder
     isAdmin?: SortOrder
+    emailVerified?: SortOrder
+    verificationToken?: SortOrder
+    verificationExpiry?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -14459,6 +15752,9 @@ export namespace Prisma {
     companyId?: SortOrder
     passwordHash?: SortOrder
     isAdmin?: SortOrder
+    emailVerified?: SortOrder
+    verificationToken?: SortOrder
+    verificationExpiry?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -14471,6 +15767,9 @@ export namespace Prisma {
     companyId?: SortOrder
     passwordHash?: SortOrder
     isAdmin?: SortOrder
+    emailVerified?: SortOrder
+    verificationToken?: SortOrder
+    verificationExpiry?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -14522,6 +15821,35 @@ export namespace Prisma {
   }
 
   export type CompanySumOrderByAggregateInput = {
+    id?: SortOrder
+  }
+
+  export type JobTypeCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type JobTypeAvgOrderByAggregateInput = {
+    id?: SortOrder
+  }
+
+  export type JobTypeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type JobTypeMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type JobTypeSumOrderByAggregateInput = {
     id?: SortOrder
   }
 
@@ -15974,6 +17302,9 @@ export namespace Prisma {
     lastName?: string | null
     passwordHash: string
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: string | null
+    verificationExpiry?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -15985,6 +17316,9 @@ export namespace Prisma {
     lastName?: string | null
     passwordHash: string
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: string | null
+    verificationExpiry?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16026,6 +17360,9 @@ export namespace Prisma {
     companyId?: IntNullableFilter<"User"> | number | null
     passwordHash?: StringFilter<"User"> | string
     isAdmin?: BoolFilter<"User"> | boolean
+    emailVerified?: BoolFilter<"User"> | boolean
+    verificationToken?: StringNullableFilter<"User"> | string | null
+    verificationExpiry?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
   }
@@ -16288,6 +17625,9 @@ export namespace Prisma {
     lastName?: string | null
     passwordHash: string
     isAdmin?: boolean
+    emailVerified?: boolean
+    verificationToken?: string | null
+    verificationExpiry?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16298,6 +17638,9 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16309,6 +17652,9 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16320,6 +17666,9 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
     isAdmin?: BoolFieldUpdateOperationsInput | boolean
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    verificationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationExpiry?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

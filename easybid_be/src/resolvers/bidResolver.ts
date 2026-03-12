@@ -1,17 +1,93 @@
-import { Context } from '../context';
+import { Context, AuthUser } from '../context';
 import { getAllJobs, createJob as createJobService } from '../services/jobService';
+import { sendRFPNotificationEmail, RFPNotificationData } from '../services/emailService';
+
+// ── Visibility helpers ──────────────────────────────────────────────────────
+// An RFP is visible to a user when:
+//   • Admin: originalCompany matches their company, OR any company-member email
+//            appears in emailList
+//   • Regular user: they created it (User display-name matches) OR their email
+//            appears in emailList
+// If there is no authenticated user in context, all data is returned (backward
+// compatibility for unauthenticated /graphql access).
+
+function canSeeRFP(rfp: any, user: AuthUser): boolean {
+  // Creator side: the RFP was sent FROM user's company
+  const companyMatch = user.companyName
+    ? rfp.originalCompany?.toLowerCase() === user.companyName.toLowerCase()
+    : false;
+
+  // Recipient side: user (or company-member) email is in emailList
+  const emailList: string[] = Array.isArray(rfp.emailList) ? rfp.emailList.map((e: string) => e.toLowerCase()) : [];
+
+  if (user.isAdmin) {
+    // Admin sees anything involving their company
+    if (companyMatch) return true;
+    // Admin sees RFPs sent TO any member of their company
+    if (user.companyEmails.some(e => emailList.includes(e.toLowerCase()))) return true;
+    return false;
+  }
+
+  // Regular user
+  // Did I create it? Match on display name + company
+  if (companyMatch && rfp.User === user.displayName) return true;
+  // Was it sent to my email?
+  if (emailList.includes(user.email.toLowerCase())) return true;
+  return false;
+}
+
+function getVisibleRFPIds(allRFPs: any[], user: AuthUser | null): Set<number> | null {
+  if (!user) return null; // no user = no filtering
+  const ids = new Set<number>();
+  for (const rfp of allRFPs) {
+    if (canSeeRFP(rfp, user)) ids.add(rfp.id);
+  }
+  return ids;
+}
+
+const normalizeStatus = (s: any) => {
+  if (s === null || s === undefined) return 1;
+  if (typeof s === 'number') return s;
+  if (typeof s === 'string') {
+    const trimmed = s.trim();
+    if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+    const low = trimmed.toLowerCase();
+    if (low === 'draft') return 1;
+    if (low === 'receiving' || low === 'receiving bids' || low === 'receiving_bids' || low === 'bids open' || low === 'open') return 2;
+    if (low === 'in process' || low === 'in_process' || low === 'inprocess') return 3;
+    if (low === 'closed') return 4;
+    return 1;
+  }
+  return 1;
+};
 
 export const resolvers = {
   Query: {
     bids: async (_: any, args: { limit?: number; page?: number }, ctx: Context) => {
-      console.log('resolver bids context value:', typeof ctx, !!(ctx && (ctx as any).prisma));
       const limit = args.limit ?? 20;
       const page = args.page && args.page > 0 ? args.page - 1 : 0;
-      return ctx.prisma.bid.findMany({
-        skip: page * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' }
+
+      if (!ctx.user) {
+        // Unauthenticated – return all (backward compat)
+        return ctx.prisma.bid.findMany({ skip: page * limit, take: limit, orderBy: { createdAt: 'desc' } });
+      }
+
+      // Load all RFPs to determine visibility, then filter bids
+      const allRFPs = await ctx.prisma.rFP.findMany();
+      const visibleIds = getVisibleRFPIds(allRFPs, ctx.user)!;
+
+      const allBids = await ctx.prisma.bid.findMany({ orderBy: { createdAt: 'desc' } });
+      const filtered = allBids.filter((b: any) => {
+        // Bid is on an RFP the user can see
+        if (b.rfpId && visibleIds.has(b.rfpId)) return true;
+        // User created the bid (match by company name)
+        if (ctx.user!.isAdmin && ctx.user!.companyName && b.company?.toLowerCase() === ctx.user!.companyName.toLowerCase()) return true;
+        // Regular user: match by email or display name in bid.user field
+        if (b.user === ctx.user!.displayName || b.user === ctx.user!.email) return true;
+        return false;
       });
+
+      return filtered.slice(page * limit, page * limit + limit);
     },
 
     bid: async (_: any, args: { id: number }, ctx: Context) => {
@@ -36,22 +112,13 @@ export const resolvers = {
 
     rfps: async (_: any, _args: any, ctx: Context) => {
       const results = await ctx.prisma.rFP.findMany({ orderBy: { createdAt: 'desc' } });
-      const normalizeStatus = (s: any) => {
-        if (s === null || s === undefined) return 1;
-        if (typeof s === 'number') return s;
-        if (typeof s === 'string') {
-          const trimmed = s.trim();
-          if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
-          const low = trimmed.toLowerCase();
-          if (low === 'draft') return 1;
-          if (low === 'receiving' || low === 'receiving bids' || low === 'receiving_bids' || low === 'bids open' || low === 'open') return 2;
-          if (low === 'in process' || low === 'in_process' || low === 'inprocess') return 3;
-          if (low === 'closed') return 4;
-          return 1;
-        }
-        return 1;
-      };
-      return results.map((r: any) => ({ ...r, status: normalizeStatus((r as any).status) }));
+
+      // Apply visibility filtering if user is authenticated
+      const filtered = ctx.user
+        ? results.filter((r: any) => canSeeRFP(r, ctx.user!))
+        : results;
+
+      return filtered.map((r: any) => ({ ...r, status: normalizeStatus((r as any).status) }));
     },
 
     emailGroups: async (_: any, args: { company?: string }, ctx: Context) => {
@@ -60,29 +127,51 @@ export const resolvers = {
     },
 
     jobs: async (_: any, _args: any, ctx: Context) => {
-      console.log('resolver jobs context value:', typeof ctx, !!(ctx && (ctx as any).prisma));
-      return getAllJobs((ctx as any).prisma);
+      if (!ctx.user) {
+        return getAllJobs((ctx as any).prisma);
+      }
+
+      // Load all jobs, then filter by RFP visibility + company
+      const allJobs = await getAllJobs((ctx as any).prisma);
+      const allRFPs = await ctx.prisma.rFP.findMany();
+      const visibleIds = getVisibleRFPIds(allRFPs, ctx.user)!;
+
+      return (allJobs as any[]).filter((job: any) => {
+        // Job linked to a visible RFP
+        if (job.rfpId && visibleIds.has(job.rfpId)) return true;
+        // Admin sees all jobs for their company
+        if (ctx.user!.isAdmin && ctx.user!.companyName && job.company?.toLowerCase() === ctx.user!.companyName.toLowerCase()) return true;
+        return false;
+      });
+    },
+
+    jobTypes: async (_: any, _args: any, ctx: Context) => {
+      return ctx.prisma.jobType.findMany({ orderBy: { name: 'asc' } });
     },
 
     bidsForRFP: async (_: any, args: { rfpId: number }, ctx: Context) => {
       const { rfpId } = args;
-      console.log('bidsForRFP resolver called with args:', args, 'types:', typeof rfpId);
+
+      // If authenticated, verify user can see the parent RFP
+      if (ctx.user) {
+        const rfp = await ctx.prisma.rFP.findUnique({ where: { id: rfpId } });
+        if (rfp && !canSeeRFP(rfp, ctx.user)) {
+          return []; // not authorised to see this RFP's bids
+        }
+      }
+
       return ctx.prisma.bid.findMany({ where: { rfpId }, orderBy: { createdAt: 'desc' } });
     },
 
     analytics: async (_: any, args: { startDate?: string; endDate?: string }, ctx: Context) => {
-      // Default range: 12 weeks back from today
       const end = args.endDate ? new Date(args.endDate) : new Date();
       const start = args.startDate
         ? new Date(args.startDate)
         : new Date(end.getTime() - 12 * 7 * 24 * 60 * 60 * 1000);
 
-      // Helper: build week buckets between start and end
       const buildBuckets = (rows: { createdAt: Date; amount: number }[]) => {
         const map = new Map<string, { count: number; totalAmount: number; weekStart: Date }>();
-        // initialise empty buckets for every Monday in the range
         const cursor = new Date(start);
-        // align to Monday
         cursor.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7));
         cursor.setHours(0, 0, 0, 0);
         while (cursor <= end) {
@@ -90,7 +179,6 @@ export const resolvers = {
           map.set(key, { count: 0, totalAmount: 0, weekStart: new Date(cursor) });
           cursor.setDate(cursor.getDate() + 7);
         }
-        // fill in the data
         for (const row of rows) {
           const d = new Date(row.createdAt);
           d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -112,35 +200,50 @@ export const resolvers = {
           }));
       };
 
-      // Fetch data in parallel
-      const [rfpRows, bidRows, jobRows, awardeeBidRows, allRfpsForStatus] = await Promise.all([
-        ctx.prisma.rFP.findMany({
-          where: { createdAt: { gte: start, lte: end } },
-          select: { createdAt: true },
-          orderBy: { createdAt: 'asc' },
-        }),
-        ctx.prisma.bid.findMany({
-          where: { createdAt: { gte: start, lte: end } },
-          select: { createdAt: true, amount: true, approved: true },
-          orderBy: { createdAt: 'asc' },
-        }),
-        ctx.prisma.job.findMany({
-          where: { createdAt: { gte: start, lte: end } },
-          select: { createdAt: true },
-          orderBy: { createdAt: 'asc' },
-        }),
-        // Accepted bids → awardee companies
-        ctx.prisma.bid.findMany({
-          where: { createdAt: { gte: start, lte: end }, approved: true },
-          select: { company: true },
-        }),
-        // All RFPs (not just in the date range) to count by status
-        ctx.prisma.rFP.findMany({
-          select: { status: true },
-        }),
+      // Fetch all data, then filter by visibility
+      const [allRFPs, allBids, allJobRows, allRfpsForStatus] = await Promise.all([
+        ctx.prisma.rFP.findMany({ orderBy: { createdAt: 'asc' } }),
+        ctx.prisma.bid.findMany({ orderBy: { createdAt: 'asc' } }),
+        ctx.prisma.job.findMany({ orderBy: { createdAt: 'asc' } }),
+        ctx.prisma.rFP.findMany({ select: { id: true, status: true, originalCompany: true, User: true, emailList: true } }),
       ]);
 
-      // Build awardee pie-chart data from accepted bids
+      // Get visible RFP ids for filtering
+      const visibleIds = getVisibleRFPIds(allRFPs, ctx.user);
+
+      // Filter data to only what the user can see
+      const rfpRows = allRFPs.filter((r: any) => {
+        if (!visibleIds) return r.createdAt >= start && r.createdAt <= end;
+        return visibleIds.has(r.id) && r.createdAt >= start && r.createdAt <= end;
+      });
+
+      const bidRows = allBids.filter((b: any) => {
+        const inRange = b.createdAt >= start && b.createdAt <= end;
+        if (!inRange) return false;
+        if (!visibleIds) return true;
+        if (b.rfpId && visibleIds.has(b.rfpId)) return true;
+        if (ctx.user?.isAdmin && ctx.user.companyName && b.company?.toLowerCase() === ctx.user.companyName.toLowerCase()) return true;
+        if (b.user === ctx.user?.displayName || b.user === ctx.user?.email) return true;
+        return false;
+      });
+
+      const jobRows = allJobRows.filter((j: any) => {
+        const inRange = j.createdAt >= start && j.createdAt <= end;
+        if (!inRange) return false;
+        if (!visibleIds) return true;
+        if (j.rfpId && visibleIds.has(j.rfpId)) return true;
+        if (ctx.user?.isAdmin && ctx.user.companyName && j.company?.toLowerCase() === ctx.user.companyName.toLowerCase()) return true;
+        return false;
+      });
+
+      const awardeeBidRows = bidRows.filter((b: any) => b.approved);
+
+      // Filter RFPs for status chart
+      const filteredStatusRFPs = allRfpsForStatus.filter((r: any) => {
+        if (!ctx.user) return true;
+        return canSeeRFP(r, ctx.user);
+      });
+
       const awardeeMap = new Map<string, number>();
       for (const b of awardeeBidRows as any[]) {
         const name = b.company || 'Unknown';
@@ -150,11 +253,10 @@ export const resolvers = {
         .map(([company, count]) => ({ company, count }))
         .sort((a, b) => b.count - a.count);
 
-      // Build RFPs by status
       const statusMap = new Map<number, number>();
       const statusLabels: Record<number, string> = { 1: 'Draft', 2: 'Receiving Bids', 3: 'In Process', 4: 'Closed' };
       
-      for (const rfp of allRfpsForStatus as any[]) {
+      for (const rfp of filteredStatusRFPs as any[]) {
         const status = rfp.status === null || rfp.status === undefined ? 1 : Number(rfp.status);
         statusMap.set(status, (statusMap.get(status) || 0) + 1);
       }
@@ -187,7 +289,7 @@ export const resolvers = {
           totalBids: bidRows.length,
           totalJobs: jobRows.length,
           totalBidAmount: Math.round(totalBidAmount * 100) / 100,
-          totalJobValue: 0, // placeholder – job value isn't tracked yet
+          totalJobValue: 0,
           pendingBidAmount: Math.round(pendingBidAmount * 100) / 100,
         },
       };
@@ -391,6 +493,45 @@ export const resolvers = {
       return createJobService((ctx as any).prisma, input);
     },
 
+    createJobType: async (_: any, args: { name: string }, ctx: Context) => {
+      return ctx.prisma.jobType.create({ data: { name: args.name } });
+    },
+
+    deleteJobType: async (_: any, args: { id: number }, ctx: Context) => {
+      await ctx.prisma.jobType.delete({ where: { id: args.id } });
+      return true;
+    },
+
+    notifyRFPRecipients: async (_: any, args: { rfpId: number; emails: string[] }, ctx: Context) => {
+      const { rfpId, emails } = args;
+      if (!emails || emails.length === 0) throw new Error('No email recipients provided');
+
+      const rfp = await ctx.prisma.rFP.findUnique({ where: { id: rfpId } });
+      if (!rfp) throw new Error(`RFP ${rfpId} not found`);
+
+      const senderName = ctx.user?.displayName || ctx.user?.email || 'EasyBid User';
+      const company = rfp.originalCompany || ctx.user?.companyName || '';
+
+      const notificationData: RFPNotificationData = {
+        rfpId: rfp.id,
+        title: rfp.title || '',
+        description: rfp.description || '',
+        jobType: rfp.jobType || '',
+        company,
+        startDate: rfp.startDate ? rfp.startDate.toISOString() : '',
+        bidsDueDate: rfp.bidsDueDate ? rfp.bidsDueDate.toISOString() : '',
+        senderName,
+      };
+
+      try {
+        await sendRFPNotificationEmail(emails, notificationData);
+        return true;
+      } catch (err) {
+        console.error('Failed to send RFP notification emails:', err);
+        throw new Error('Failed to send notification emails');
+      }
+    },
+
     updateBid: async (_: any, args: { id: number; input: any }, ctx: Context) => {
       const updateData = { ...args.input };
       // Bid model no longer contains `title` or `status` columns. Strip them.
@@ -407,6 +548,8 @@ export const resolvers = {
   Bid: {
     // Derive `status` from the boolean `approved` column for backward compatibility
     status: (parent: any) => parent.approved ? 'Approved' : 'Open',
+    createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
+    updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
     title: async (parent: any, _args: any, ctx: Context) => {
       // If the bid object already has a title, return it.
       if (parent && parent.title) return parent.title;
@@ -428,12 +571,16 @@ export const resolvers = {
     }
   }
 ,
+  BidPosting: {
+    createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
+    updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
+  },
   RFP: {
+    createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
+    updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
     emailGroup: async (parent: any, _args: any, ctx: Context) => {
       if (!parent || parent.emailGroupId === undefined || parent.emailGroupId === null) return null;
       return ctx.prisma.emailGroup.findUnique({ where: { id: parent.emailGroupId } });
     }
   }
 };
-
-

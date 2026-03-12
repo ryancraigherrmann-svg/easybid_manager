@@ -1,31 +1,47 @@
-import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, ApolloLink } from '@apollo/client';
 
 // Determine the GraphQL URL based on environment
 const getGraphqlUrl = (): string => {
-  // In browser environment, use relative path or environment variable
   if (typeof window !== 'undefined') {
-    // If explicit VITE_GRAPHQL_URL is set, use it
     if (import.meta.env.VITE_GRAPHQL_URL) {
       return import.meta.env.VITE_GRAPHQL_URL;
     }
-    
-    // Otherwise, use the current origin with /graphql path
-    // This works for both local and production deployments
     return `${window.location.origin}/graphql`;
   }
-  
-  // Server-side fallback (shouldn't happen in browser)
   return 'http://localhost:4000/graphql';
 };
 
 const graphqlUrl = getGraphqlUrl();
 console.log('Apollo Client connecting to GraphQL URL:', graphqlUrl);
 
+const httpLink = new HttpLink({ 
+  uri: graphqlUrl,
+  credentials: 'include',
+});
+
+// Auth link: attach JWT token from localStorage to every GraphQL request
+const authLink = new ApolloLink((operation, forward) => {
+  try {
+    const raw = localStorage.getItem('easybid_auth_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.token && parsed?.expiry && Date.now() < parsed.expiry) {
+        operation.setContext(({ headers = {} }: any) => ({
+          headers: {
+            ...headers,
+            authorization: `Bearer ${parsed.token}`,
+          },
+        }));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return forward(operation);
+});
+
 export const apolloClient = new ApolloClient({
-  link: new HttpLink({ 
-    uri: graphqlUrl,
-    credentials: 'include', // Include cookies for authenticated requests
-  }),
+  link: ApolloLink.from([authLink, httpLink]),
   cache: new InMemoryCache(),
 });
 

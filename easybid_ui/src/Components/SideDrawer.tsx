@@ -23,6 +23,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 import { useAuth } from './AuthProvider';
 import JobTable from './JobTable';
 import GanttChart from './GanttChart';
@@ -32,6 +33,8 @@ import EzBidLogo from './EzBidLogo';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import { useThemeMode } from './ThemeModeContext';
+import { useViewSettings } from './ViewSettingsContext';
+import UserSettingsPage from './UserSettingsPage';
 
 // Steel blue palette
 const STEEL = {
@@ -60,6 +63,25 @@ export default function ResponsiveDrawer(props: Props) {
   const [selectedTab, setSelectedTab] = React.useState<string>('RFPS & Bids');
   const { mode, toggleMode } = useThemeMode();
   const isDark = mode === 'dark';
+  const { viewSettings } = useViewSettings();
+
+  // Build the visible main nav items based on view settings
+  const allMainTabs = ['RFPS & Bids', 'Jobs', 'Schedule', 'Analytics'];
+  const visibleMainTabs = allMainTabs.filter((tab) => {
+    if (tab === 'RFPS & Bids') return viewSettings.showRFPs || viewSettings.showBids;
+    if (tab === 'Jobs') return viewSettings.showJobs;
+    if (tab === 'Schedule') return viewSettings.showSchedule;
+    if (tab === 'Analytics') return viewSettings.showAnalytics;
+    return true;
+  });
+
+  // If the currently selected tab is no longer visible, redirect to first available or User Settings
+  React.useEffect(() => {
+    const allVisibleTabs = [...visibleMainTabs, 'Company', 'User Settings'];
+    if (!allVisibleTabs.includes(selectedTab)) {
+      setSelectedTab(allVisibleTabs[0] || 'User Settings');
+    }
+  }, [viewSettings, selectedTab, visibleMainTabs]);
 
   const handleDrawerClose = () => {
     setIsClosing(true);
@@ -93,7 +115,7 @@ export default function ResponsiveDrawer(props: Props) {
       </Box>
       <Divider sx={{ borderColor: STEEL.divider }} />
       <List sx={{ px: 1, pt: 1 }}>
-        {['RFPS & Bids', 'Jobs', 'Schedule', 'Analytics'].map((text) => (
+        {visibleMainTabs.map((text) => (
           <ListItem key={text} disablePadding sx={{ mb: 0.3 }}>
             <ListItemButton
               selected={selectedTab === text}
@@ -248,6 +270,8 @@ export default function ResponsiveDrawer(props: Props) {
             <AnalyticsPage />
           ) : selectedTab === 'Company' ? (
             <CompanyPage />
+          ) : selectedTab === 'User Settings' ? (
+            <UserSettingsPage />
           ) : (
             <Typography>{selectedTab}</Typography>
           )}
@@ -290,6 +314,14 @@ function UserMenu() {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <MenuItem disabled>{user?.email}</MenuItem>
+        <MenuItem disabled sx={{ pt: 0 }}>
+          <Chip
+            label={user?.isAdmin ? 'Admin' : 'User'}
+            size="small"
+            color={user?.isAdmin ? 'primary' : 'default'}
+            sx={{ fontWeight: 600 }}
+          />
+        </MenuItem>
         <MenuItem onClick={handleLogout} sx={{ mt: 1, color: 'error.main' }}>Logout</MenuItem>
       </Menu>
     </>

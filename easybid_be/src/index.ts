@@ -36,10 +36,58 @@ async function start() {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Helper: extract user from JWT and load full profile for GraphQL context
+  const buildContext = async (req: any) => {
+    const auth = req.headers?.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) return { prisma, user: null };
+    const token = auth.slice('Bearer '.length).trim();
+    const { verifyToken } = await import('./utils/jwt');
+    const payload = verifyToken<{ userId: number; email: string }>(token);
+    if (!payload || !payload.userId) return { prisma, user: null };
+
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        include: { company: true },
+      });
+      if (!dbUser) return { prisma, user: null };
+
+      const displayName = dbUser.firstName || dbUser.lastName
+        ? `${dbUser.firstName ?? ''} ${dbUser.lastName ?? ''}`.trim()
+        : dbUser.email;
+
+      // For admins, load all company member emails for visibility filtering
+      let companyEmails: string[] = [dbUser.email];
+      if (dbUser.isAdmin && dbUser.companyId) {
+        const members = await prisma.user.findMany({
+          where: { companyId: dbUser.companyId },
+          select: { email: true },
+        });
+        companyEmails = members.map((m: any) => m.email);
+      }
+
+      return {
+        prisma,
+        user: {
+          userId: dbUser.id,
+          email: dbUser.email,
+          companyId: dbUser.companyId,
+          companyName: dbUser.company?.name ?? null,
+          isAdmin: dbUser.isAdmin ?? false,
+          displayName,
+          companyEmails,
+        },
+      };
+    } catch (e) {
+      console.error('Error building GraphQL context:', e);
+      return { prisma, user: null };
+    }
+  };
+
   const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: () => ({ prisma }),
+    context: ({ req }: any) => buildContext(req),
     cache: "bounded"
   });
 

@@ -187,3 +187,10 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix Tailwind preflight resetting MUI Autocomplete input width */
+.MuiAutocomplete-root .MuiInputBase-root input {
+  width: 0;
+  min-width: 30px;
+  flex-grow: 1;
+}

@@ -1,5 +1,4 @@
 import SideDrawer from "./Components/SideDrawer";
-import BidTable from "./Components/BidTable";
 import RFPTable from "./Components/RFPTable";
 import Box from '@mui/material/Box';
 import { AuthProvider, useAuth } from "./Components/AuthProvider";
@@ -135,7 +134,6 @@ function InnerApp() {
     <SideDrawer>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
         {viewSettings.showRFPs && <RFPTable />}
-        {viewSettings.showBids && <BidTable />}
       </Box>
     </SideDrawer>
   );

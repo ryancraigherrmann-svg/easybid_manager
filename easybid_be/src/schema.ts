@@ -17,6 +17,8 @@ export const typeDefs = gql`
     emailGroupId: Int
     emailGroup: EmailGroup
     User: String
+    notifiedAt: String
+    notifiedEmails: [String!]
     createdAt: String!
     updatedAt: String!
   }
@@ -80,6 +82,37 @@ export const typeDefs = gql`
     company: String
     createdAt: String!
     updatedAt: String!
+    activities: [JobActivity!]!
+  }
+
+  type JobActivity {
+    id: Int!
+    jobId: Int!
+    rfpId: Int
+    type: String!
+    content: String!
+    fileName: String
+    fileKey: String
+    author: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type ActivityUser {
+    id: Int!
+    firstName: String
+    lastName: String
+    email: String!
+  }
+
+  type ActivityLog {
+    id: Int!
+    action: String!
+    entityType: String!
+    entityId: Int!
+    metadata: String
+    createdAt: String!
+    user: ActivityUser!
   }
 
   type JobType {
@@ -135,6 +168,8 @@ export const typeDefs = gql`
     jobs: [Job!]!
     jobTypes: [JobType!]!
     bidsForRFP(rfpId: Int!): [Bid!]!
+    jobActivities(rfpId: Int!): [JobActivity!]!
+    activityLogs(limit: Int, cursor: Int): [ActivityLog!]!
     analytics(startDate: String, endDate: String): AnalyticsData!
   }
 
@@ -192,6 +227,10 @@ export const typeDefs = gql`
     amount: Float
     status: String
     approved: Boolean
+    user: String
+    company: String
+    info: String
+    expectedDate: String
   }
 
   input CreateJobInput {
@@ -202,6 +241,14 @@ export const typeDefs = gql`
     startDate: String
     daysExpected: Int
     company: String
+  }
+
+  input CreateJobActivityInput {
+    rfpId: Int!
+    type: String!
+    content: String!
+    fileName: String
+    fileKey: String
   }
 
   input CreateEmailGroupInput {
@@ -227,6 +274,9 @@ export const typeDefs = gql`
     updateEmailGroup(id: Int!, input: UpdateEmailGroupInput!): EmailGroup!
     deleteEmailGroup(id: Int!): Boolean!
     createJob(input: CreateJobInput!): Job!
+    deleteJob(id: Int!): Job!
+    deleteRFP(id: Int!): RFP!
+    createJobActivity(input: CreateJobActivityInput!): JobActivity!
     createJobType(name: String!): JobType!
     deleteJobType(id: Int!): Boolean!
     notifyRFPRecipients(rfpId: Int!, emails: [String!]!): Boolean!

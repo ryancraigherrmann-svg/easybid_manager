@@ -90,6 +90,7 @@ deploy_stack "easybid-network"  "${CF_DIR}/01-network.yml"  "${PARAMS_DIR}/netwo
 deploy_stack "easybid-cluster"  "${CF_DIR}/02-cluster.yml"  "${PARAMS_DIR}/cluster.json"  "CAPABILITY_NAMED_IAM"
 deploy_stack "easybid-alb"      "${CF_DIR}/03-alb.yml"      "${PARAMS_DIR}/alb.json"
 deploy_stack "easybid-services" "${CF_DIR}/04-services.yml" "${PARAMS_DIR}/services.json"
+deploy_stack "easybid-cost-alert" "${CF_DIR}/05-cost-alert.yml" "${PARAMS_DIR}/cost-alert.json" "CAPABILITY_NAMED_IAM"
 
 echo ""
 echo "============================================"

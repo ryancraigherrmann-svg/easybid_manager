@@ -11,6 +11,7 @@ export const GET_BIDS_FOR_RFP = gql`
       company
       info
       expectedDate
+      createdAt
       lineItems {
         description
         amount

@@ -6,11 +6,13 @@ import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import DescriptionIcon from '@mui/icons-material/Description';
+import GavelIcon from '@mui/icons-material/Gavel';
 import WorkIcon from '@mui/icons-material/Work';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import BusinessIcon from '@mui/icons-material/Business';
 import SettingsIcon from '@mui/icons-material/Settings';
+import HomeIcon from '@mui/icons-material/Home';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -26,9 +28,11 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import { useAuth } from './AuthProvider';
 import JobTable from './JobTable';
+import BidTable from './BidTable';
 import GanttChart from './GanttChart';
 import CompanyPage from './CompanyPage';
 import AnalyticsPage from './AnalyticsPage';
+import ActivityFeed from './ActivityFeed';
 import EzBidLogo from './EzBidLogo';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -60,15 +64,17 @@ export default function ResponsiveDrawer(props: Props) {
   const { window, children } = props;
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [isClosing, setIsClosing] = React.useState(false);
-  const [selectedTab, setSelectedTab] = React.useState<string>('RFPS & Bids');
+  const [selectedTab, setSelectedTab] = React.useState<string>('Home');
   const { mode, toggleMode } = useThemeMode();
   const isDark = mode === 'dark';
   const { viewSettings } = useViewSettings();
 
   // Build the visible main nav items based on view settings
-  const allMainTabs = ['RFPS & Bids', 'Jobs', 'Schedule', 'Analytics'];
+  const allMainTabs = ['Home', 'RFPs', 'Bids', 'Jobs', 'Schedule', 'Analytics'];
   const visibleMainTabs = allMainTabs.filter((tab) => {
-    if (tab === 'RFPS & Bids') return viewSettings.showRFPs || viewSettings.showBids;
+    if (tab === 'Home') return true;
+    if (tab === 'RFPs') return viewSettings.showRFPs;
+    if (tab === 'Bids') return viewSettings.showBids;
     if (tab === 'Jobs') return viewSettings.showJobs;
     if (tab === 'Schedule') return viewSettings.showSchedule;
     if (tab === 'Analytics') return viewSettings.showAnalytics;
@@ -99,7 +105,9 @@ export default function ResponsiveDrawer(props: Props) {
   };
 
   const navIcons: Record<string, React.ReactNode> = {
-    'RFPS & Bids': <DescriptionIcon />,
+    'Home': <HomeIcon />,
+    'RFPs': <DescriptionIcon />,
+    'Bids': <GavelIcon />,
     'Jobs': <WorkIcon />,
     'Schedule': <CalendarMonthIcon />,
     'Analytics': <BarChartIcon />,
@@ -252,8 +260,16 @@ export default function ResponsiveDrawer(props: Props) {
       >
         <Toolbar />
         <Box sx={{ marginBottom: 2, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, bgcolor: isDark ? '#0F1F2E' : STEEL.bg }}>
-          {selectedTab === 'RFPS & Bids' ? (
+          {selectedTab === 'Home' ? (
+            <ActivityFeed />
+          ) : selectedTab === 'RFPs' ? (
             children
+          ) : selectedTab === 'Bids' ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '95%', maxWidth: '95vw', mx: 'auto' }}>
+              <Box sx={{ width: '100%' }}>
+                <BidTable />
+              </Box>
+            </Box>
           ) : selectedTab === 'Jobs' ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '95%', maxWidth: '95vw', mx: 'auto' }}>
               <Box sx={{ width: '100%' }}>

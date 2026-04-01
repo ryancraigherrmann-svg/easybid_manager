@@ -22,7 +22,6 @@ interface CreateJobDialogProps {
 const initialState = {
   title: '',
   description: '',
-  rfpId: '',
   jobType: '',
   startDate: '',
   daysExpected: '',
@@ -56,7 +55,6 @@ const CreateJobDialog: React.FC<CreateJobDialogProps> = ({ open, onClose, onCrea
       input: {
         title: form.title,
         description: form.description || null,
-        rfpId: form.rfpId ? parseInt(form.rfpId, 10) : null,
         jobType: form.jobType || null,
         startDate: form.startDate || null,
         daysExpected: form.daysExpected ? parseInt(form.daysExpected, 10) : null,
@@ -87,18 +85,6 @@ const CreateJobDialog: React.FC<CreateJobDialogProps> = ({ open, onClose, onCrea
             </Grid>
             <Grid size={12}>
               <TextField margin="dense" label="Description" name="description" value={form.description} onChange={handleChange} fullWidth multiline rows={3} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                margin="dense"
-                label="RFP ID (optional)"
-                name="rfpId"
-                value={form.rfpId}
-                onChange={handleChange}
-                fullWidth
-                placeholder="Leave blank for no RFP"
-                helperText="Leave empty if this job is not tied to an RFP"
-              />
             </Grid>
             <Box sx={{ width: '100%', mt: 2 }}>
               <Autocomplete

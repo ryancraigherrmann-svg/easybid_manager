@@ -6,6 +6,17 @@ export const UPDATE_BID = gql`
       id
       amount
       approved
+      user
+      company
+      info
+      expectedDate
+      lineItems {
+        id
+        description
+        amount
+      }
+      createdAt
+      updatedAt
     }
   }
 `;

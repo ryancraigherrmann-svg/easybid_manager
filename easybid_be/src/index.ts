@@ -101,6 +101,8 @@ async function start() {
   app.use('/api', authRoutes.default || authRoutes);
   const companyRoutes = await import('./routes/companyRoutes');
   app.use('/api', companyRoutes.default || companyRoutes);
+  const uploadRoutes = await import('./routes/uploadRoutes');
+  app.use('/api', uploadRoutes.default || uploadRoutes);
 
   const port = process.env.PORT || 4000;
   app.listen(Number(port), '0.0.0.0', () => {

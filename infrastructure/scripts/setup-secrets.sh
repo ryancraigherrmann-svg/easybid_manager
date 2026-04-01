@@ -64,6 +64,31 @@ aws secretsmanager update-secret \
 
 echo "  ✓ easybid/jwt-secret saved"
 
+# ── Secret 3: SMTP_PASS ──
+# Used by the backend email service (nodemailer) to authenticate with Outlook SMTP.
+# Code reference: easybid_be/src/services/emailService.ts
+echo ""
+echo "Setting up SMTP_PASS (Outlook email password for ezbid@fourthpc.com)..."
+read -sp "Enter SMTP password: " SMTP_PASS
+echo ""
+
+if [ -z "$SMTP_PASS" ]; then
+  echo "ERROR: SMTP_PASS cannot be empty"
+  exit 1
+fi
+
+aws secretsmanager create-secret \
+  --name easybid/smtp-pass \
+  --description "SMTP password for EasyBid email (ezbid@fourthpc.com via Outlook)" \
+  --secret-string "$SMTP_PASS" \
+  --region $AWS_REGION 2>/dev/null || \
+aws secretsmanager update-secret \
+  --secret-id easybid/smtp-pass \
+  --secret-string "$SMTP_PASS" \
+  --region $AWS_REGION
+
+echo "  ✓ easybid/smtp-pass saved"
+
 echo ""
 echo "============================================"
 echo "  Secrets created successfully!"

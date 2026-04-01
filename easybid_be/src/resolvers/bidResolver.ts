@@ -1,6 +1,7 @@
 import { Context, AuthUser } from '../context';
 import { getAllJobs, createJob as createJobService } from '../services/jobService';
 import { sendRFPNotificationEmail, RFPNotificationData } from '../services/emailService';
+import { logActivity } from '../services/activityService';
 
 // ── Visibility helpers ──────────────────────────────────────────────────────
 // An RFP is visible to a user when:
@@ -163,6 +164,40 @@ export const resolvers = {
       return ctx.prisma.bid.findMany({ where: { rfpId }, orderBy: { createdAt: 'desc' } });
     },
 
+    jobActivities: async (_: any, args: { rfpId: number }, ctx: Context) => {
+      const { rfpId } = args;
+
+      // Verify visibility
+      if (ctx.user) {
+        const rfp = await ctx.prisma.rFP.findUnique({ where: { id: rfpId } });
+        if (rfp && !canSeeRFP(rfp, ctx.user)) {
+          return [];
+        }
+      }
+
+      return ctx.prisma.jobActivity.findMany({
+        where: { rfpId },
+        orderBy: { createdAt: 'asc' },
+      });
+    },
+
+    activityLogs: async (_: any, args: { limit?: number; cursor?: number }, ctx: Context) => {
+      if (!ctx.user || !ctx.user.companyId) return [];
+      const take = Math.min(args.limit ?? 30, 100);
+      const where: any = { companyId: ctx.user.companyId };
+      if (args.cursor) {
+        where.id = { lt: args.cursor };
+      }
+      return ctx.prisma.activityLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      });
+    },
+
     analytics: async (_: any, args: { startDate?: string; endDate?: string }, ctx: Context) => {
       const end = args.endDate ? new Date(args.endDate) : new Date();
       const start = args.startDate
@@ -321,10 +356,24 @@ export const resolvers = {
         };
       }
 
-      return ctx.prisma.bid.create({
+      const bid = await ctx.prisma.bid.create({
         data,
         include: { lineItems: true }
       });
+
+      if (ctx.user?.companyId) {
+        const rfp = rfpId ? await ctx.prisma.rFP.findUnique({ where: { id: rfpId } }) : null;
+        await logActivity(ctx.prisma, {
+          companyId: ctx.user.companyId,
+          userId: ctx.user.userId,
+          action: 'BID_PLACED',
+          entityType: 'Bid',
+          entityId: bid.id,
+          metadata: { rfpTitle: rfp?.title || null, amount, company: company || null },
+        });
+      }
+
+      return bid;
     },
 
     createRFP: async (_: any, args: { input: any }, ctx: Context) => {
@@ -353,11 +402,28 @@ export const resolvers = {
         const parsed = input.emailGroupId === '' ? null : parseInt(input.emailGroupId, 10);
         input.emailGroupId = Number.isNaN(parsed) ? null : parsed;
       }
+      // Parse images JSON string into a proper array for Prisma Json field
+      if (input.images !== undefined && typeof input.images === 'string') {
+        try { input.images = JSON.parse(input.images); } catch { /* leave as-is */ }
+      }
       // Allow title field
       if (input.title === undefined && input.description) {
         // keep existing behavior if no title provided
       }
-      return ctx.prisma.rFP.create({ data: input });
+      const rfp = await ctx.prisma.rFP.create({ data: input });
+
+      if (ctx.user?.companyId) {
+        await logActivity(ctx.prisma, {
+          companyId: ctx.user.companyId,
+          userId: ctx.user.userId,
+          action: 'RFP_CREATED',
+          entityType: 'RFP',
+          entityId: rfp.id,
+          metadata: { title: rfp.title || null, jobType: rfp.jobType || null },
+        });
+      }
+
+      return rfp;
     },
 
     updateRFPStatus: async (_: any, args: { id: number; status: number }, ctx: Context) => {
@@ -383,6 +449,19 @@ export const resolvers = {
       }
 
       const updated = await ctx.prisma.rFP.update({ where: { id }, data: { status: newStatus } });
+
+      if (ctx.user?.companyId) {
+        const statusLabels: Record<number, string> = { 1: 'Draft', 2: 'Receiving Bids', 3: 'In Process', 4: 'Closed' };
+        await logActivity(ctx.prisma, {
+          companyId: ctx.user.companyId,
+          userId: ctx.user.userId,
+          action: 'RFP_STATUS_CHANGED',
+          entityType: 'RFP',
+          entityId: id,
+          metadata: { title: existing.title || null, oldStatus: statusLabels[oldStatus] || oldStatus, newStatus: statusLabels[newStatus] || newStatus },
+        });
+      }
+
       return updated;
     },
 
@@ -414,6 +493,10 @@ export const resolvers = {
         if (Array.isArray(updateData.emailList)) {
           updateData.emailList = { set: updateData.emailList };
         }
+      }
+      // Parse images JSON string into a proper array for Prisma Json field
+      if (updateData.images !== undefined && typeof updateData.images === 'string') {
+        try { updateData.images = JSON.parse(updateData.images); } catch { /* leave as-is */ }
       }
       console.log('updateRFP normalized updateData:', updateData);
 
@@ -489,8 +572,69 @@ export const resolvers = {
         }
       }
 
+      // jobType is required in the DB — default to empty string if not provided
+      if (!input.jobType) {
+        input.jobType = '';
+      }
+
       // startDate for Job is kept as string per schema; if present on input leave as-is
-      return createJobService((ctx as any).prisma, input);
+      const job = await createJobService((ctx as any).prisma, input);
+
+      if (ctx.user?.companyId) {
+        const rfp = input.rfpId ? await ctx.prisma.rFP.findUnique({ where: { id: input.rfpId } }) : null;
+        await logActivity(ctx.prisma, {
+          companyId: ctx.user.companyId,
+          userId: ctx.user.userId,
+          action: 'JOB_CREATED',
+          entityType: 'Job',
+          entityId: job.id,
+          metadata: { title: job.title || null, company: job.company || null, rfpTitle: rfp?.title || null },
+        });
+      }
+
+      return job;
+    },
+
+    createJobActivity: async (_: any, args: { input: any }, ctx: Context) => {
+      const { rfpId, type, content, fileName, fileKey } = args.input;
+      if (!ctx.user) throw new Error('Authentication required');
+      if (!['message', 'file'].includes(type)) throw new Error('Invalid activity type');
+
+      // Find the job linked to this RFP
+      const job = await ctx.prisma.job.findFirst({ where: { rfpId } });
+      if (!job) throw new Error(`No job found for RFP ${rfpId}`);
+
+      // Verify user can see this RFP
+      const rfp = await ctx.prisma.rFP.findUnique({ where: { id: rfpId } });
+      if (rfp && !canSeeRFP(rfp, ctx.user)) {
+        throw new Error('Not authorized to post to this job');
+      }
+
+      const activity = await ctx.prisma.jobActivity.create({
+        data: {
+          jobId: job.id,
+          rfpId,
+          type,
+          content,
+          fileName: fileName ?? null,
+          fileKey: fileKey ?? null,
+          author: ctx.user.displayName || ctx.user.email,
+        },
+      });
+
+      if (ctx.user.companyId) {
+        const rfpObj = await ctx.prisma.rFP.findUnique({ where: { id: rfpId } });
+        await logActivity(ctx.prisma, {
+          companyId: ctx.user.companyId,
+          userId: ctx.user.userId,
+          action: type === 'file' ? 'FILE_UPLOADED' : 'RFP_CREATED', // reuse for message; could add MESSAGE_SENT
+          entityType: 'Job',
+          entityId: job.id,
+          metadata: { jobTitle: job.title || null, rfpTitle: rfpObj?.title || null, fileName: fileName || null, type },
+        });
+      }
+
+      return activity;
     },
 
     createJobType: async (_: any, args: { name: string }, ctx: Context) => {
@@ -525,6 +669,23 @@ export const resolvers = {
 
       try {
         await sendRFPNotificationEmail(emails, notificationData);
+        // Merge newly-notified emails with any previously notified
+        const existingNotified: string[] = Array.isArray(rfp.notifiedEmails) ? rfp.notifiedEmails : [];
+        const mergedNotified = Array.from(new Set([...existingNotified, ...emails.map(e => e.toLowerCase())]));
+        // Record the notification timestamp and the notified emails on the RFP
+        await ctx.prisma.rFP.update({ where: { id: rfpId }, data: { notifiedAt: new Date(), notifiedEmails: { set: mergedNotified } } });
+
+        if (ctx.user?.companyId) {
+          await logActivity(ctx.prisma, {
+            companyId: ctx.user.companyId,
+            userId: ctx.user.userId,
+            action: 'RFP_NOTIFIED',
+            entityType: 'RFP',
+            entityId: rfpId,
+            metadata: { title: rfp.title || null, recipientCount: emails.length },
+          });
+        }
+
         return true;
       } catch (err) {
         console.error('Failed to send RFP notification emails:', err);
@@ -537,11 +698,52 @@ export const resolvers = {
       // Bid model no longer contains `title` or `status` columns. Strip them.
       if ('title' in updateData) delete (updateData as any).title;
       if ('status' in updateData) delete (updateData as any).status;
-      return ctx.prisma.bid.update({ where: { id: args.id }, data: updateData });
+      // Convert expectedDate string to Date if provided
+      if (updateData.expectedDate) {
+        updateData.expectedDate = new Date(updateData.expectedDate);
+      }
+      const updatedBid = await ctx.prisma.bid.update({ where: { id: args.id }, data: updateData });
+
+      if (args.input.approved === true && ctx.user?.companyId) {
+        const rfp = updatedBid.rfpId ? await ctx.prisma.rFP.findUnique({ where: { id: updatedBid.rfpId } }) : null;
+        await logActivity(ctx.prisma, {
+          companyId: ctx.user.companyId,
+          userId: ctx.user.userId,
+          action: 'BID_APPROVED',
+          entityType: 'Bid',
+          entityId: updatedBid.id,
+          metadata: { rfpTitle: rfp?.title || null, amount: updatedBid.amount, bidderCompany: updatedBid.company || null },
+        });
+      }
+
+      return updatedBid;
     },
 
     deleteBid: async (_: any, args: { id: number }, ctx: Context) => {
       return ctx.prisma.bid.delete({ where: { id: args.id } });
+    },
+
+    deleteJob: async (_: any, args: { id: number }, ctx: Context) => {
+      // Delete related activities first
+      await ctx.prisma.jobActivity.deleteMany({ where: { jobId: args.id } });
+      return ctx.prisma.job.delete({ where: { id: args.id } });
+    },
+
+    deleteRFP: async (_: any, args: { id: number }, ctx: Context) => {
+      const rfp = await ctx.prisma.rFP.findUnique({ where: { id: args.id } });
+      if (!rfp) throw new Error(`RFP ${args.id} not found`);
+      // Delete related bids (and their line items) and jobs
+      const bids = await ctx.prisma.bid.findMany({ where: { rfpId: args.id } });
+      for (const bid of bids) {
+        await ctx.prisma.bidLineItem.deleteMany({ where: { bidId: bid.id } });
+      }
+      await ctx.prisma.bid.deleteMany({ where: { rfpId: args.id } });
+      const jobs = await ctx.prisma.job.findMany({ where: { rfpId: args.id } });
+      for (const job of jobs) {
+        await ctx.prisma.jobActivity.deleteMany({ where: { jobId: job.id } });
+      }
+      await ctx.prisma.job.deleteMany({ where: { rfpId: args.id } });
+      return ctx.prisma.rFP.delete({ where: { id: args.id } });
     }
   },
 
@@ -572,15 +774,45 @@ export const resolvers = {
   }
 ,
   BidPosting: {
+    images: (parent: any) => {
+      if (parent.images === null || parent.images === undefined) return null;
+      if (typeof parent.images === 'string') return parent.images;
+      return JSON.stringify(parent.images);
+    },
     createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
     updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
   },
   RFP: {
+    images: (parent: any) => {
+      if (parent.images === null || parent.images === undefined) return null;
+      if (typeof parent.images === 'string') return parent.images;
+      return JSON.stringify(parent.images);
+    },
     createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
     updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
+    notifiedAt: (parent: any) => parent.notifiedAt instanceof Date ? parent.notifiedAt.toISOString() : parent.notifiedAt ?? null,
     emailGroup: async (parent: any, _args: any, ctx: Context) => {
       if (!parent || parent.emailGroupId === undefined || parent.emailGroupId === null) return null;
       return ctx.prisma.emailGroup.findUnique({ where: { id: parent.emailGroupId } });
     }
+  },
+  Job: {
+    activities: async (parent: any, _args: any, ctx: Context) => {
+      return ctx.prisma.jobActivity.findMany({ where: { jobId: parent.id }, orderBy: { createdAt: 'asc' } });
+    },
+    createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
+    updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
+  },
+  JobActivity: {
+    createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
+    updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,
+  },
+  ActivityLog: {
+    createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
+    metadata: (parent: any) => {
+      if (parent.metadata === null || parent.metadata === undefined) return null;
+      if (typeof parent.metadata === 'string') return parent.metadata;
+      return JSON.stringify(parent.metadata);
+    },
   }
 };

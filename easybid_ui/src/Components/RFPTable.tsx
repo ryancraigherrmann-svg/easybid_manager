@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { GET_RFPS } from '../graphql/queries';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -12,9 +12,16 @@ import TableRow from '@mui/material/TableRow';
 import { useState } from 'react';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import RFPDetailView from './RFPDetailView';
 import CreateRFPDialog from './CreateRFPDialog';
 import { useAuth } from './AuthProvider';
+import { DELETE_RFP } from '../graphql/deleteRFP';
 import React from 'react';
 
 type RFP = {
@@ -29,6 +36,10 @@ type RFP = {
   status?: number;
   startDate?: string | number | null;
   bidsDueDate?: string | number | null;
+  emailList?: string[];
+  emailGroupId?: number | null;
+  emailGroup?: { id: number; name: string; company?: string; emails?: string[] } | null;
+  notifiedAt?: string | null;
   User?: string;
   createdAt: string;
   updatedAt: string;
@@ -61,17 +72,21 @@ export default function RFPTable() {
     return <span style={{ fontWeight: 'bold', color: '#94A3B8' }}>Unknown</span>;
   };
   const { data, loading, error, refetch } = useQuery<{ rfps: RFP[] }>(GET_RFPS);
-  const [selectedRFP, setSelectedRFP] = useState<RFP | null>(null);
+  const [selectedRFPId, setSelectedRFPId] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deleteRFP] = useMutation(DELETE_RFP);
+
+  // Always derive the selected RFP from the latest query data so it stays fresh after refetch
+  const selectedRFP = selectedRFPId != null ? (data?.rfps.find((r) => r.id === selectedRFPId) || null) : null;
 
   const handleIdClick = (id: number) => {
-    const rfp = data?.rfps.find((r) => r.id === id) || null;
-    setSelectedRFP(rfp);
+    setSelectedRFPId(id);
     setDetailOpen(true);
   };
   const handleDetailClose = () => {
     setDetailOpen(false);
-    setSelectedRFP(null);
+    setSelectedRFPId(null);
   };
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -81,15 +96,22 @@ export default function RFPTable() {
     setCreateOpen(false);
     refetch();
   };
+
+  const handleDeleteRFP = async (id: number) => {
+    try {
+      await deleteRFP({ variables: { id } });
+      refetch();
+    } catch (err) {
+      console.error('Failed to delete RFP:', err);
+    }
+    setConfirmDeleteId(null);
+  };
+
   const { user, token } = useAuth();
   const [companyName, setCompanyName] = useState<string | undefined>(undefined);
 
   const userName = React.useMemo(() => {
     if (!user) return '';
-    const parts: string[] = [];
-    if ((user as any).firstName) parts.push((user as any).firstName);
-    if ((user as any).lastName) parts.push((user as any).lastName);
-    if (parts.length > 0) return parts.join(' ');
     return user.email || '';
   }, [user]);
 
@@ -119,7 +141,7 @@ export default function RFPTable() {
 
   return (
     <Paper sx={{ width: '85vw', maxWidth: '85vw', overflow: 'hidden', mx: 'auto' }}>
-      <RFPDetailView open={detailOpen} onClose={handleDetailClose} rfp={selectedRFP} />
+      <RFPDetailView open={detailOpen} onClose={handleDetailClose} rfp={selectedRFP} onRefetchRFPs={refetch} />
       <CreateRFPDialog open={createOpen} onClose={handleCreateClose} onCreated={handleCreated} userName={userName} companyName={companyName} />
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, pb: 1, bgcolor: '#374151' }}>
         <Typography variant="h6" sx={{ color: 'primary.contrastText' }}>
@@ -142,15 +164,16 @@ export default function RFPTable() {
               <TableCell>Company</TableCell>
               <TableCell>Start Date</TableCell>
               <TableCell>Bids Due</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7}>Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9}>Loading...</TableCell></TableRow>
             ) : error ? (
-              <TableRow><TableCell colSpan={7} style={{ color: 'red' }}>Error: {error.message}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} style={{ color: 'red' }}>Error: {error.message}</TableCell></TableRow>
             ) : data && data.rfps.length === 0 ? (
-              <TableRow><TableCell colSpan={7}>No RFPs found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9}>No RFPs found.</TableCell></TableRow>
             ) : (
               data?.rfps.map((rfp) => (
                 <TableRow key={rfp.id} hover sx={{ '& td': { py: 0.5 } }}>
@@ -172,12 +195,26 @@ export default function RFPTable() {
                       <TableCell>{rfp.originalCompany}</TableCell>
                       <TableCell>{formatDate(rfp.startDate)}</TableCell>
                       <TableCell>{formatDate(rfp.bidsDueDate)}</TableCell>
+                      <TableCell>
+                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(rfp.id); }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Dialog open={confirmDeleteId !== null} onClose={() => setConfirmDeleteId(null)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>Are you sure you want to delete this RFP? This will also delete all associated bids and jobs.</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => confirmDeleteId && handleDeleteRFP(confirmDeleteId)}>Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }

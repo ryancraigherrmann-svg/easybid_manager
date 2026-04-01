@@ -1,0 +1,194 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EasyBid - Cost Alert that stops ECS services when budget threshold is hit
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+
+  MonthlyBudgetAmount:
+    Type: Number
+    Default: 50
+    Description: Monthly spending threshold in USD that triggers service shutdown
+
+  AlertThresholdPercent:
+    Type: Number
+    Default: 100
+    Description: Percentage of budget at which to trigger the alert (100 = at threshold, 80 = at 80% of threshold)
+
+  NotificationEmail:
+    Type: String
+    Description: Email address to notify when services are stopped
+
+Resources:
+  # ---------- SNS Topic for Budget Alerts ----------
+  CostAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub easybid-${EnvironmentName}-cost-alert
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Email subscription so you know when it fires
+  CostAlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref CostAlertTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  # Lambda subscription to actually stop the services
+  CostAlertLambdaSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref CostAlertTopic
+      Protocol: lambda
+      Endpoint: !GetAtt StopServicesFunction.Arn
+
+  # Allow SNS to invoke the Lambda
+  SNSInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StopServicesFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref CostAlertTopic
+
+  # ---------- IAM Role for Lambda ----------
+  StopServicesLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub easybid-${EnvironmentName}-cost-alert-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ECSUpdateService
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:UpdateService
+                  - ecs:DescribeServices
+                Resource:
+                  - !Sub arn:aws:ecs:us-east-2:*:service/easybid-${EnvironmentName}/*
+
+  # ---------- Lambda Function to Stop ECS Services ----------
+  StopServicesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub easybid-${EnvironmentName}-stop-services
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 30
+      Role: !GetAtt StopServicesLambdaRole.Arn
+      Environment:
+        Variables:
+          ECS_CLUSTER: !Sub easybid-${EnvironmentName}
+          BACKEND_SERVICE: easybid-backend
+          FRONTEND_SERVICE: easybid-frontend
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          import json
+
+          def handler(event, context):
+              ecs = boto3.client('ecs', region_name='us-east-2')
+              cluster = os.environ['ECS_CLUSTER']
+              services = [
+                  os.environ['BACKEND_SERVICE'],
+                  os.environ['FRONTEND_SERVICE'],
+              ]
+
+              print(f"Cost alert triggered! Stopping ECS services in cluster: {cluster}")
+              print(f"SNS event: {json.dumps(event)}")
+
+              results = []
+              for service_name in services:
+                  try:
+                      response = ecs.update_service(
+                          cluster=cluster,
+                          service=service_name,
+                          desiredCount=0,
+                      )
+                      status = response['service']['status']
+                      desired = response['service']['desiredCount']
+                      print(f"  Set {service_name} desiredCount=0 (status={status})")
+                      results.append({"service": service_name, "success": True})
+                  except Exception as e:
+                      print(f"  Failed to stop {service_name}: {str(e)}")
+                      results.append({"service": service_name, "success": False, "error": str(e)})
+
+              return {
+                  "statusCode": 200,
+                  "body": json.dumps({
+                      "message": "Cost alert processed - services scaled to 0",
+                      "results": results,
+                  }),
+              }
+
+  # ---------- CloudWatch Log Group for Lambda ----------
+  StopServicesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/easybid-${EnvironmentName}-stop-services
+      RetentionInDays: 14
+
+  # ---------- AWS Budget ----------
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub easybid-${EnvironmentName}-monthly-budget
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetAmount
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: !Ref AlertThresholdPercent
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: SNS
+              Address: !Ref CostAlertTopic
+
+  # ---------- SNS Topic Policy (allow Budgets to publish) ----------
+  CostAlertTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref CostAlertTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowBudgetsPublish
+            Effect: Allow
+            Principal:
+              Service: budgets.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref CostAlertTopic
+
+Outputs:
+  BudgetName:
+    Value: !Sub easybid-${EnvironmentName}-monthly-budget
+    Description: Name of the AWS Budget
+
+  CostAlertTopicArn:
+    Value: !Ref CostAlertTopic
+    Description: SNS topic ARN for cost alerts
+
+  StopServicesFunctionArn:
+    Value: !GetAtt StopServicesFunction.Arn
+    Description: Lambda function that stops ECS services

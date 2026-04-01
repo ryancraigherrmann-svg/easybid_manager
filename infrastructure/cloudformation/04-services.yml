@@ -34,6 +34,15 @@ Parameters:
     Type: String
     Description: Full ARN of the easybid/jwt-secret secret (including the -XXXXXX suffix)
 
+  SmtpPassSecretArn:
+    Type: String
+    Description: Full ARN of the easybid/smtp-pass secret (including the -XXXXXX suffix)
+
+  AppUrl:
+    Type: String
+    Default: 'http://localhost:5173'
+    Description: Public URL of the frontend (used in email links)
+
 Resources:
   # ---------- Backend Task Definition ----------
   BackendTaskDefinition:
@@ -63,6 +72,22 @@ Resources:
             - Name: CORS_ORIGINS
               # After deployment, replace with ALB DNS or your custom domain
               Value: '*'
+            - Name: AWS_REGION
+              Value: us-east-1
+            - Name: S3_BUCKET
+              Value: easybid-uploads-production
+            - Name: SMTP_HOST
+              Value: smtp.office365.com
+            - Name: SMTP_PORT
+              Value: '587'
+            - Name: SMTP_SECURE
+              Value: 'false'
+            - Name: SMTP_USER
+              Value: ezbid@fourthpc.com
+            - Name: SMTP_FROM
+              Value: 'EasyBid <ezbid@fourthpc.com>'
+            - Name: APP_URL
+              Value: !Ref AppUrl
           Secrets:
             # ── CONNECTION POINT: Backend → PostgreSQL ──
             # These secrets are passed as full ARNs (with the random suffix)
@@ -71,6 +96,8 @@ Resources:
               ValueFrom: !Ref DatabaseUrlSecretArn
             - Name: JWT_SECRET
               ValueFrom: !Ref JwtSecretArn
+            - Name: SMTP_PASS
+              ValueFrom: !Ref SmtpPassSecretArn
           LogConfiguration:
             LogDriver: awslogs
             Options:

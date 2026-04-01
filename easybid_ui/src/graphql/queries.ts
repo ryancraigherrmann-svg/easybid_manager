@@ -23,6 +23,8 @@ export const GET_RFPS = gql`
       startDate
       bidsDueDate
       User
+      notifiedAt
+      notifiedEmails
       createdAt
       updatedAt
     }

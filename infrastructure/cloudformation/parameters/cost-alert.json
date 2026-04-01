@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "MonthlyBudgetAmount",
+    "ParameterValue": "50"
+  },
+  {
+    "ParameterKey": "AlertThresholdPercent",
+    "ParameterValue": "100"
+  },
+  {
+    "ParameterKey": "NotificationEmail",
+    "ParameterValue": "ryanh@fourthpc.com"
+  }
+]

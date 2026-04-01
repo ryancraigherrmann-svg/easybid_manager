@@ -77,7 +77,7 @@ const CreateRFPDialog: React.FC<CreateRFPDialogProps> = ({ open, onClose, onCrea
       const resolvedUserName =
         userName ??
         (user
-          ? [(user as any).firstName, (user as any).lastName].filter(Boolean).join(' ') || user.email || ''
+          ? user.email || ''
           : '');
       setForm(() => ({ ...initialState, User: resolvedUserName, originalCompany: resolvedCompany }));
     };

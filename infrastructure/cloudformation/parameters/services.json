@@ -22,5 +22,13 @@
   {
     "ParameterKey": "JwtSecretArn",
     "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/jwt-secret-mOZmzg"
+  },
+  {
+    "ParameterKey": "SmtpPassSecretArn",
+    "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/smtp-pass-9norcC"
+  },
+  {
+    "ParameterKey": "AppUrl",
+    "ParameterValue": "http://easybid-production-alb-522155174.us-east-2.elb.amazonaws.com"
   }
 ]

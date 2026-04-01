@@ -161,6 +161,8 @@ exports.Prisma.RFPScalarFieldEnum = {
   emailGroupId: 'emailGroupId',
   title: 'title',
   User: 'User',
+  notifiedAt: 'notifiedAt',
+  notifiedEmails: 'notifiedEmails',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -183,6 +185,19 @@ exports.Prisma.JobScalarFieldEnum = {
   startDate: 'startDate',
   daysExpected: 'daysExpected',
   company: 'company',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.JobActivityScalarFieldEnum = {
+  id: 'id',
+  jobId: 'jobId',
+  rfpId: 'rfpId',
+  type: 'type',
+  content: 'content',
+  fileName: 'fileName',
+  fileKey: 'fileKey',
+  author: 'author',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -233,6 +248,17 @@ exports.Prisma.CompanyFinancialScalarFieldEnum = {
   account: 'account'
 };
 
+exports.Prisma.ActivityLogScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  userId: 'userId',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -266,11 +292,13 @@ exports.Prisma.ModelName = {
   RFP: 'RFP',
   EmailGroup: 'EmailGroup',
   Job: 'Job',
+  JobActivity: 'JobActivity',
   BidLineItem: 'BidLineItem',
   User: 'User',
   Company: 'Company',
   JobType: 'JobType',
-  CompanyFinancial: 'CompanyFinancial'
+  CompanyFinancial: 'CompanyFinancial',
+  ActivityLog: 'ActivityLog'
 };
 
 /**

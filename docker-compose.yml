@@ -24,11 +24,20 @@ services:
       context: ./easybid_be
       dockerfile: Dockerfile
       target: builder          # stop at the node stage so npm/ts-node-dev are available
+    env_file:
+      - ./easybid_be/.env
     environment:
       DATABASE_URL: postgresql://easybid:easybid@db:5432/easybid
       PORT: 4000
       NODE_ENV: development
       CORS_ORIGINS: http://localhost:5173,http://ui:5173
+      SMTP_HOST: smtp.office365.com
+      SMTP_PORT: 587
+      SMTP_SECURE: "false"
+      SMTP_USER: ezbid@fourthpc.com
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: "EasyBid <ezbid@fourthpc.com>"
+      APP_URL: http://localhost:5173
     volumes:
       - ./easybid_be:/app
       - /app/node_modules

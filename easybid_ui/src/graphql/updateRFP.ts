@@ -6,6 +6,7 @@ export const UPDATE_RFP = gql`
       id
       emailList
       emailGroupId
+      images
     }
   }
 `;

@@ -9,11 +9,11 @@
   },
   {
     "ParameterKey": "BackendDesiredCount",
-    "ParameterValue": "0"
+    "ParameterValue": "1"
   },
   {
     "ParameterKey": "FrontendDesiredCount",
-    "ParameterValue": "0"
+    "ParameterValue": "1"
   },
   {
     "ParameterKey": "DatabaseUrlSecretArn",
@@ -29,6 +29,6 @@
   },
   {
     "ParameterKey": "AppUrl",
-    "ParameterValue": "http://easybid-production-alb-522155174.us-east-2.elb.amazonaws.com"
+    "ParameterValue": "https://ezbidapp.com"
   }
 ]

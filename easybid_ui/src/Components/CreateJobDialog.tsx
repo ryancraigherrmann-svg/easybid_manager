@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -12,6 +12,9 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { CREATE_JOB } from '../graphql/createJob';
 import { GET_JOBS } from '../graphql/jobs';
 import { GET_JOB_TYPES, CREATE_JOB_TYPE } from '../graphql/jobTypes';
+import { CREATE_RFP } from '../graphql/createRFP';
+import { GET_RFPS } from '../graphql/queries';
+import { useAuth } from './AuthProvider';
 
 interface CreateJobDialogProps {
   open: boolean;
@@ -41,6 +44,42 @@ const CreateJobDialog: React.FC<CreateJobDialogProps> = ({ open, onClose, onCrea
   const [createJob, { loading, error }] = useMutation(CREATE_JOB, { refetchQueries: [{ query: GET_JOBS }] });
   const { data: jobTypesData } = useQuery(GET_JOB_TYPES);
   const [createJobType] = useMutation(CREATE_JOB_TYPE, { refetchQueries: [{ query: GET_JOB_TYPES }] });
+  const [createRFP] = useMutation(CREATE_RFP, { refetchQueries: [{ query: GET_RFPS }] });
+  const { token, user: authUser } = useAuth();
+  const [userName, setUserName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    if (token) {
+      fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => { if (!r.ok) throw new Error('unauthorized'); return r.json(); })
+        .then((d) => {
+          setUserName(d?.user?.email ?? '');
+          setCompanyName(d?.company?.name ?? '');
+          setForm((f) => ({ ...f, company: d?.company?.name ?? '' }));
+        })
+        .catch(() => {
+          if (authUser) {
+            setUserName(authUser.email ?? '');
+            if (authUser.companyId) {
+              fetch(`/api/company/${authUser.companyId}`)
+                .then((r) => r.json())
+                .then((d) => { setCompanyName(d?.company?.name ?? ''); setForm((f) => ({ ...f, company: d?.company?.name ?? '' })); })
+                .catch(() => setCompanyName(''));
+            }
+          }
+        });
+    } else if (authUser) {
+      setUserName(authUser.email ?? '');
+      if (authUser.companyId) {
+        fetch(`/api/company/${authUser.companyId}`)
+          .then((r) => r.json())
+          .then((d) => { setCompanyName(d?.company?.name ?? ''); setForm((f) => ({ ...f, company: d?.company?.name ?? '' })); })
+          .catch(() => setCompanyName(''));
+      }
+    }
+  }, [open, token, authUser]);
 
   const jobTypes: JobTypeOption[] = jobTypesData?.jobTypes ?? [];
 
@@ -51,24 +90,39 @@ const CreateJobDialog: React.FC<CreateJobDialogProps> = ({ open, onClose, onCrea
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const variables = {
-      input: {
-        title: form.title,
-        description: form.description || null,
-        jobType: form.jobType || null,
-        startDate: form.startDate || null,
-        daysExpected: form.daysExpected ? parseInt(form.daysExpected, 10) : null,
-        company: form.company || null,
-      }
-    };
-
     try {
+      // Auto-create an RFP with the title and current user as owner
+      const rfpResult = await createRFP({
+        variables: {
+          input: {
+            title: form.title || null,
+            User: userName,
+            originalCompany: companyName,
+            jobType: form.jobType || null,
+            description: form.description || null,
+            startDate: form.startDate || null,
+          }
+        }
+      });
+      const linkedRfpId = (rfpResult.data as any)?.createRFP?.id;
+
+      const variables = {
+        input: {
+          title: form.title,
+          description: form.description || null,
+          jobType: form.jobType || null,
+          startDate: form.startDate || null,
+          daysExpected: form.daysExpected ? parseInt(form.daysExpected, 10) : null,
+          company: form.company || null,
+          rfpId: linkedRfpId ?? null,
+        }
+      };
+
       await createJob({ variables });
       setForm(initialState);
       onClose();
       if (onCreated) onCreated();
     } catch (err) {
-      console.error('CreateJob mutation variables:', variables);
       console.error('CreateJob mutation error:', err);
       throw err;
     }

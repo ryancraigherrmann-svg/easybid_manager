@@ -68,7 +68,7 @@ echo "  ✓ easybid/jwt-secret saved"
 # Used by the backend email service (nodemailer) to authenticate with Outlook SMTP.
 # Code reference: easybid_be/src/services/emailService.ts
 echo ""
-echo "Setting up SMTP_PASS (Outlook email password for ezbid@fourthpc.com)..."
+echo "Setting up SMTP_PASS (SES SMTP password for noreply@ezbidapp.com)..."
 read -sp "Enter SMTP password: " SMTP_PASS
 echo ""
 
@@ -79,7 +79,7 @@ fi
 
 aws secretsmanager create-secret \
   --name easybid/smtp-pass \
-  --description "SMTP password for EasyBid email (ezbid@fourthpc.com via Outlook)" \
+  --description "SMTP password for EasyBid email (noreply@ezbidapp.com via SES)" \
   --secret-string "$SMTP_PASS" \
   --region $AWS_REGION 2>/dev/null || \
 aws secretsmanager update-secret \

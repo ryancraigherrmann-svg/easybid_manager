@@ -30,8 +30,8 @@ function canSeeRFP(rfp: any, user: AuthUser): boolean {
   }
 
   // Regular user
-  // Did I create it? Match on display name + company
-  if (companyMatch && rfp.User === user.displayName) return true;
+  // Did I create it? Match on display name or email + company
+  if (companyMatch && (rfp.User === user.displayName || rfp.User === user.email)) return true;
   // Was it sent to my email?
   if (emailList.includes(user.email.toLowerCase())) return true;
   return false;
@@ -406,6 +406,10 @@ export const resolvers = {
       if (input.images !== undefined && typeof input.images === 'string') {
         try { input.images = JSON.parse(input.images); } catch { /* leave as-is */ }
       }
+      // Parse attributes JSON string into a proper array for Prisma Json field
+      if (input.attributes !== undefined && typeof input.attributes === 'string') {
+        try { input.attributes = JSON.parse(input.attributes); } catch { /* leave as-is */ }
+      }
       // Allow title field
       if (input.title === undefined && input.description) {
         // keep existing behavior if no title provided
@@ -497,6 +501,10 @@ export const resolvers = {
       // Parse images JSON string into a proper array for Prisma Json field
       if (updateData.images !== undefined && typeof updateData.images === 'string') {
         try { updateData.images = JSON.parse(updateData.images); } catch { /* leave as-is */ }
+      }
+      // Parse attributes JSON string into a proper array for Prisma Json field
+      if (updateData.attributes !== undefined && typeof updateData.attributes === 'string') {
+        try { updateData.attributes = JSON.parse(updateData.attributes); } catch { /* leave as-is */ }
       }
       console.log('updateRFP normalized updateData:', updateData);
 
@@ -787,6 +795,11 @@ export const resolvers = {
       if (parent.images === null || parent.images === undefined) return null;
       if (typeof parent.images === 'string') return parent.images;
       return JSON.stringify(parent.images);
+    },
+    attributes: (parent: any) => {
+      if (parent.attributes === null || parent.attributes === undefined) return null;
+      if (typeof parent.attributes === 'string') return parent.attributes;
+      return JSON.stringify(parent.attributes);
     },
     createdAt: (parent: any) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : parent.createdAt,
     updatedAt: (parent: any) => parent.updatedAt instanceof Date ? parent.updatedAt.toISOString() : parent.updatedAt,

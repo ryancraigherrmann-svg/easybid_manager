@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { prisma } from '../prisma';
 
 // ── Mail transport ──────────────────────────────────────────────────────────
 // In production set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS env vars.
@@ -8,6 +9,8 @@ let _transporter: nodemailer.Transporter | null = null;
 
 async function getTransporter(): Promise<nodemailer.Transporter> {
   if (_transporter) return _transporter;
+
+  console.log(`📧 SMTP config: HOST=${process.env.SMTP_HOST || '(not set)'}, PORT=${process.env.SMTP_PORT || '(not set)'}, USER=${process.env.SMTP_USER || '(not set)'}, PASS=${process.env.SMTP_PASS ? '***' : '(not set)'}`);
 
   if (process.env.SMTP_HOST) {
     _transporter = nodemailer.createTransport({
@@ -103,6 +106,9 @@ export async function sendVerificationEmail(to: string, firstName: string | null
     to,
     subject: 'Verify your email — EasyBid',
     html,
+    ...(process.env.SES_CONFIG_SET && {
+      headers: { 'X-SES-CONFIGURATION-SET': process.env.SES_CONFIG_SET },
+    }),
   });
 
   // When using Ethereal, log the preview URL
@@ -127,6 +133,20 @@ export interface RFPNotificationData {
 
 export async function sendRFPNotificationEmail(to: string[], data: RFPNotificationData) {
   if (!to.length) return null;
+
+  // Filter out suppressed emails (bounced, complained, or unsubscribed)
+  const suppressed = await prisma.suppressedEmail.findMany({
+    where: { email: { in: to.map(e => e.toLowerCase()) } },
+    select: { email: true },
+  });
+  const suppressedSet = new Set(suppressed.map(s => s.email));
+  const validRecipients = to.filter(e => !suppressedSet.has(e.toLowerCase()));
+
+  if (suppressedSet.size > 0) {
+    console.log(`📧 Filtered ${suppressedSet.size} suppressed email(s) from RFP notification`);
+  }
+  if (!validRecipients.length) return null;
+
   const transporter = await getTransporter();
 
   const bidsDueDateFormatted = data.bidsDueDate
@@ -137,8 +157,14 @@ export async function sendRFPNotificationEmail(to: string[], data: RFPNotificati
     : 'Not specified';
 
   const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const apiUrl = process.env.API_URL || appUrl.replace(/:\d+$/, ':4000');
 
-  const html = `
+  // Send individual emails so recipients don't see each other's addresses
+  const results = [];
+  for (const recipient of validRecipients) {
+    const unsubscribeUrl = `${apiUrl}/api/unsubscribe?email=${encodeURIComponent(recipient)}`;
+
+    const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -229,6 +255,9 @@ export async function sendRFPNotificationEmail(to: string[], data: RFPNotificati
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #E2E8F0;text-align:center;">
               <p style="margin:0 0 4px;color:#94a3b8;font-size:12px;">You received this because your email was added to an RFP on EasyBid.</p>
+              <p style="margin:0 0 4px;color:#94a3b8;font-size:12px;">
+                <a href="${unsubscribeUrl}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a> from future RFP notifications.
+              </p>
               <p style="margin:0;color:#94a3b8;font-size:12px;">&copy; ${new Date().getFullYear()} EasyBid. All rights reserved.</p>
             </td>
           </tr>
@@ -239,15 +268,25 @@ export async function sendRFPNotificationEmail(to: string[], data: RFPNotificati
 </body>
 </html>`;
 
-  const info = await transporter.sendMail({
-    from: FROM_ADDRESS,
-    to: to.join(', '),
-    subject: `New RFP: ${data.title || 'Bid Request'} — EasyBid`,
-    html,
-  });
+    const info = await transporter.sendMail({
+      from: FROM_ADDRESS,
+      to: recipient,
+      subject: `New RFP: ${data.title || 'Bid Request'} — EasyBid`,
+      html,
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        ...(process.env.SES_CONFIG_SET && {
+          'X-SES-CONFIGURATION-SET': process.env.SES_CONFIG_SET,
+        }),
+      },
+    });
 
-  const preview = nodemailer.getTestMessageUrl(info);
-  if (preview) console.log('📧 RFP notification email preview:', preview);
+    const preview = nodemailer.getTestMessageUrl(info);
+    if (preview) console.log('📧 RFP notification email preview:', preview);
 
-  return info;
+    results.push(info);
+  }
+
+  return results;
 }

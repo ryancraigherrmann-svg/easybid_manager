@@ -38,9 +38,13 @@ Parameters:
     Type: String
     Description: Full ARN of the easybid/smtp-pass secret (including the -XXXXXX suffix)
 
+  SmtpUserSecretArn:
+    Type: String
+    Description: Full ARN of the easybid/smtp-user secret (including the -XXXXXX suffix)
+
   AppUrl:
     Type: String
-    Default: 'http://localhost:5173'
+    Default: 'https://ezbidapp.com'
     Description: Public URL of the frontend (used in email links)
 
 Resources:
@@ -70,22 +74,22 @@ Resources:
             - Name: NODE_ENV
               Value: production
             - Name: CORS_ORIGINS
-              # After deployment, replace with ALB DNS or your custom domain
-              Value: '*'
+              Value: 'https://ezbidapp.com'
             - Name: AWS_REGION
               Value: us-east-1
             - Name: S3_BUCKET
               Value: easybid-uploads-production
             - Name: SMTP_HOST
-              Value: smtp.office365.com
+              Value: email-smtp.us-east-2.amazonaws.com
             - Name: SMTP_PORT
               Value: '587'
             - Name: SMTP_SECURE
               Value: 'false'
-            - Name: SMTP_USER
-              Value: ezbid@fourthpc.com
             - Name: SMTP_FROM
-              Value: 'EasyBid <ezbid@fourthpc.com>'
+              Value: 'EasyBid <noreply@ezbidapp.com>'
+            - Name: SES_CONFIG_SET
+              Value: !ImportValue
+                Fn::Sub: easybid-${EnvironmentName}-SESConfigSetName
             - Name: APP_URL
               Value: !Ref AppUrl
           Secrets:
@@ -96,6 +100,8 @@ Resources:
               ValueFrom: !Ref DatabaseUrlSecretArn
             - Name: JWT_SECRET
               ValueFrom: !Ref JwtSecretArn
+            - Name: SMTP_USER
+              ValueFrom: !Ref SmtpUserSecretArn
             - Name: SMTP_PASS
               ValueFrom: !Ref SmtpPassSecretArn
           LogConfiguration:

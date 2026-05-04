@@ -2,5 +2,9 @@
   {
     "ParameterKey": "EnvironmentName",
     "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-2:263701502489:certificate/d4ac36d1-cabf-4607-9dc6-f919c88cbcd9"
   }
 ]

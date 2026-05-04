@@ -167,3 +167,11 @@ model ActivityLog {
   metadata   Json?
   createdAt  DateTime @default(now())
 }
+
+model SuppressedEmail {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  reason    String   // 'bounce', 'complaint', or 'unsubscribe'
+  source    String?  // e.g. 'sns', 'user'
+  createdAt DateTime @default(now())
+}

@@ -103,6 +103,8 @@ async function start() {
   app.use('/api', companyRoutes.default || companyRoutes);
   const uploadRoutes = await import('./routes/uploadRoutes');
   app.use('/api', uploadRoutes.default || uploadRoutes);
+  const sesRoutes = await import('./routes/sesRoutes');
+  app.use('/api', sesRoutes.default || sesRoutes);
 
   const port = process.env.PORT || 4000;
   app.listen(Number(port), '0.0.0.0', () => {

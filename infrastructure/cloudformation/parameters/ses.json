@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "Domain",
+    "ParameterValue": "ezbidapp.com"
+  },
+  {
+    "ParameterKey": "MailFromSubdomain",
+    "ParameterValue": "mail"
+  }
+]

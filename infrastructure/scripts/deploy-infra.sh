@@ -14,7 +14,7 @@ AWS_REGION="us-east-2"
 ENV_NAME="production"
 CF_DIR="infrastructure/cloudformation"
 PARAMS_DIR="${CF_DIR}/parameters"
-
+l
 echo "============================================"
 echo "  EasyBid — Infrastructure Deployment"
 echo "  Region: ${AWS_REGION}"
@@ -89,6 +89,7 @@ deploy_stack() {
 deploy_stack "easybid-network"  "${CF_DIR}/01-network.yml"  "${PARAMS_DIR}/network.json"
 deploy_stack "easybid-cluster"  "${CF_DIR}/02-cluster.yml"  "${PARAMS_DIR}/cluster.json"  "CAPABILITY_NAMED_IAM"
 deploy_stack "easybid-alb"      "${CF_DIR}/03-alb.yml"      "${PARAMS_DIR}/alb.json"
+deploy_stack "easybid-ses"      "${CF_DIR}/06-ses.yml"      "${PARAMS_DIR}/ses.json"
 deploy_stack "easybid-services" "${CF_DIR}/04-services.yml" "${PARAMS_DIR}/services.json"
 deploy_stack "easybid-cost-alert" "${CF_DIR}/05-cost-alert.yml" "${PARAMS_DIR}/cost-alert.json" "CAPABILITY_NAMED_IAM"
 

@@ -13,6 +13,7 @@ export const CREATE_RFP = gql`
       emailGroupId
       startDate
       bidsDueDate
+      attributes
       User
       createdAt
       updatedAt

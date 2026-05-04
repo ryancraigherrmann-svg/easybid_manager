@@ -46,6 +46,7 @@ import { NOTIFY_RFP_RECIPIENTS } from '../graphql/notifyRFPRecipients';
 import { GET_RFPS } from '../graphql/queries';
 import CreateBidDialog from './CreateBidDialog';
 import BidBreakdownDialog from './BidBreakdownDialog';
+import RFPAttributesSection from './RFPAttributesSection';
 import { GET_JOB_ACTIVITIES, CREATE_JOB_ACTIVITY } from '../graphql/jobActivity';
 import Chip from '@mui/material/Chip';
 import Snackbar from '@mui/material/Snackbar';
@@ -695,6 +696,16 @@ const RFPDetailView: React.FC<RFPDetailViewProps> = ({ open, onClose, rfp, onRef
                         </Box>
                       </Box>
                     </Box>
+
+                    {/* Attributes Section */}
+                    <RFPAttributesSection
+                      rfp={rfp}
+                      updateRfp={updateRfp}
+                      cardBg={cardBg}
+                      isOwner={isOwner}
+                      onRefetchRFPs={onRefetchRFPs}
+                      setSnackbar={setSnackbar}
+                    />
 
                     {isOwner && <Box sx={{ backgroundColor: cardBg, borderRadius: 2, p: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>

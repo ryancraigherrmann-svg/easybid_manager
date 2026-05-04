@@ -18,6 +18,7 @@ import Typography from '@mui/material/Typography';
 import { useMutation } from '@apollo/client/react';
 import { CREATE_BID } from '../graphql/createBid';
 import { CREATE_RFP } from '../graphql/createRFP';
+import { GET_RFPS } from '../graphql/queries';
 import { useAuth } from './AuthProvider';
 import { formatCurrency } from '../lib/utils';
 
@@ -90,10 +91,11 @@ const CreateBidDialog: React.FC<CreateBidDialogProps> = ({ open, onClose, rfpId,
     }
   }, [open, token, authUser]);
   const [info, setInfo] = useState('');
+  const [title, setTitle] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
   const [lineItems, setLineItems] = useState<LineItem[]>([{ ...emptyLine }]);
   const [createBid, { loading, error }] = useMutation(CREATE_BID);
-  const [createRFP] = useMutation(CREATE_RFP);
+  const [createRFP] = useMutation(CREATE_RFP, { refetchQueries: [{ query: GET_RFPS }] });
 
   const total = useMemo(() => {
     return lineItems.reduce((sum, li) => sum + (parseFloat(li.amount || '0') || 0), 0);
@@ -112,7 +114,7 @@ const CreateBidDialog: React.FC<CreateBidDialogProps> = ({ open, onClose, rfpId,
     let linkedRfpId = rfpId;
     // If no rfpId provided, create a blank RFP behind the scenes and link bid to it
     if (typeof linkedRfpId === 'undefined') {
-      const rfpResult = await createRFP({ variables: { input: { User: user, originalCompany: company } } });
+      const rfpResult = await createRFP({ variables: { input: { title: title || null, User: user, originalCompany: company } } });
       linkedRfpId = (rfpResult.data as any)?.createRFP?.id;
     }
     const variables: any = { input: {
@@ -126,7 +128,7 @@ const CreateBidDialog: React.FC<CreateBidDialogProps> = ({ open, onClose, rfpId,
     }};
     await createBid({ variables });
     // reset only editable fields; keep user/company populated from /api/me
-    setInfo(''); setExpectedDate(''); setLineItems([{ ...emptyLine }]);
+    setInfo(''); setExpectedDate(''); setTitle(''); setLineItems([{ ...emptyLine }]);
     onClose();
     if (onCreated) await onCreated();
   };
@@ -136,6 +138,9 @@ const CreateBidDialog: React.FC<CreateBidDialogProps> = ({ open, onClose, rfpId,
       <DialogTitle>{rfpId ? 'Bid on RFP' : 'Create Bid'}</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
+          {!rfpId && (
+            <TextField label="Title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth sx={{ mb: 2 }} placeholder="Enter a title for this bid" />
+          )}
           <TextField label="User" value={user} fullWidth sx={{ mb: 2 }} disabled />
           <TextField label="Company" value={company} fullWidth sx={{ mb: 2 }} disabled />
           <TextField label="Info" value={info} onChange={(e) => setInfo(e.target.value)} fullWidth multiline rows={2} sx={{ mb: 2 }} />

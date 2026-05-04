@@ -31,12 +31,13 @@ services:
       PORT: 4000
       NODE_ENV: development
       CORS_ORIGINS: http://localhost:5173,http://ui:5173
-      SMTP_HOST: smtp.office365.com
+      SMTP_HOST: email-smtp.us-east-2.amazonaws.com
       SMTP_PORT: 587
       SMTP_SECURE: "false"
-      SMTP_USER: ezbid@fourthpc.com
+      SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: "EasyBid <ezbid@fourthpc.com>"
+      SMTP_FROM: "EasyBid <noreply@ezbidapp.com>"
+      SES_CONFIG_SET: ${SES_CONFIG_SET:-}
       APP_URL: http://localhost:5173
     volumes:
       - ./easybid_be:/app

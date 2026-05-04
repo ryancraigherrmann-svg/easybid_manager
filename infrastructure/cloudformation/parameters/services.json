@@ -24,6 +24,10 @@
     "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/jwt-secret-mOZmzg"
   },
   {
+    "ParameterKey": "SmtpUserSecretArn",
+    "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/smtp-user-wZ9Ttc"
+  },
+  {
     "ParameterKey": "SmtpPassSecretArn",
     "ParameterValue": "arn:aws:secretsmanager:us-east-2:263701502489:secret:easybid/smtp-pass-9norcC"
   },

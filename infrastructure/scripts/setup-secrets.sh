@@ -64,8 +64,32 @@ aws secretsmanager update-secret \
 
 echo "  ✓ easybid/jwt-secret saved"
 
-# ── Secret 3: SMTP_PASS ──
-# Used by the backend email service (nodemailer) to authenticate with Outlook SMTP.
+# ── Secret 3: SMTP_USER ──
+# Used by the backend email service (nodemailer) as SES SMTP username.
+# This is usually an AWS access-key-like value generated for SES SMTP.
+echo ""
+echo "Setting up SMTP_USER (SES SMTP username)..."
+read -p "Enter SMTP username: " SMTP_USER
+
+if [ -z "$SMTP_USER" ]; then
+  echo "ERROR: SMTP_USER cannot be empty"
+  exit 1
+fi
+
+aws secretsmanager create-secret \
+  --name easybid/smtp-user \
+  --description "SMTP username for EasyBid email (SES SMTP credentials)" \
+  --secret-string "$SMTP_USER" \
+  --region $AWS_REGION 2>/dev/null || \
+aws secretsmanager update-secret \
+  --secret-id easybid/smtp-user \
+  --secret-string "$SMTP_USER" \
+  --region $AWS_REGION
+
+echo "  ✓ easybid/smtp-user saved"
+
+# ── Secret 4: SMTP_PASS ──
+# Used by the backend email service (nodemailer) to authenticate with SES SMTP.
 # Code reference: easybid_be/src/services/emailService.ts
 echo ""
 echo "Setting up SMTP_PASS (SES SMTP password for noreply@ezbidapp.com)..."

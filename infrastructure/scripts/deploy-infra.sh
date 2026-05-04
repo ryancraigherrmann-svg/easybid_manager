@@ -42,13 +42,37 @@ deploy_stack() {
 
   # Check if stack exists
   if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION &>/dev/null; then
+    CURRENT_STATUS=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION \
+      --query 'Stacks[0].StackStatus' --output text)
+
+    if [ "$CURRENT_STATUS" = "ROLLBACK_COMPLETE" ]; then
+      echo "  Stack is in ROLLBACK_COMPLETE, deleting before recreate..."
+      aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION
+      aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME --region $AWS_REGION
+      echo "  Creating stack..."
+      aws cloudformation create-stack \
+        --stack-name $STACK_NAME \
+        --template-body file://$TEMPLATE \
+        $PARAMS_ARG \
+        --region $AWS_REGION \
+        $CAPS_ARG
+    else
     echo "  Stack exists, updating..."
-    aws cloudformation update-stack \
+    UPDATE_OUTPUT=$(aws cloudformation update-stack \
       --stack-name $STACK_NAME \
       --template-body file://$TEMPLATE \
       $PARAMS_ARG \
       --region $AWS_REGION \
-      $CAPS_ARG 2>/dev/null || echo "  No updates needed"
+      $CAPS_ARG 2>&1) || {
+        if echo "$UPDATE_OUTPUT" | grep -q "No updates are to be performed"; then
+          echo "  No updates needed"
+        else
+          echo "  Update failed:"
+          echo "$UPDATE_OUTPUT"
+          exit 1
+        fi
+      }
+    fi
   else
     echo "  Creating stack..."
     aws cloudformation create-stack \

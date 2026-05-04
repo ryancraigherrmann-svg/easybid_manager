@@ -14,7 +14,7 @@ AWS_REGION="us-east-2"
 ENV_NAME="production"
 CF_DIR="infrastructure/cloudformation"
 PARAMS_DIR="${CF_DIR}/parameters"
-l
+
 echo "============================================"
 echo "  EasyBid — Infrastructure Deployment"
 echo "  Region: ${AWS_REGION}"
